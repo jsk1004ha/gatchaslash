@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>핵앤슬래시 갸챠 게임 v0.1 데모</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --panel-bg: rgba(10, 10, 25, 0.92);
+            --border-gradient: linear-gradient(to right, #b8860b, #ffd700, #b8860b);
+            --font-color: #ecf0f1;
+            --primary-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warn-color: #f1c40f;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Orbitron', 'Arial', sans-serif; background: #1a1a1a; color: var(--font-color); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        #gameContainer { width: 1280px; height: 720px; position: relative; background-color: #000; box-shadow: 0 0 40px rgba(74, 144, 226, 0.4); }
+        #gameCanvas { background: linear-gradient(to bottom, #2c3e50, #34495e); display: block; width: 100%; height: 100%; cursor: crosshair; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .ui-panel { position: absolute; background: var(--panel-bg); border: 3px solid; border-image-slice: 1; border-image-source: var(--border-gradient); padding: 15px; pointer-events: auto; backdrop-filter: blur(8px); font-size: 14px; }
+        #statsPanel { top: 20px; left: 20px; width: 280px; }
+        #equipmentPanel { top: 20px; right: 20px; width: 280px; }
+        #inventoryPanel, #gachaPanel, #talentPanel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; max-height: 80vh; display: none; z-index: 21; overflow-y: auto; }
+        #bottomUIPanel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 450px; text-align: center; pointer-events: auto; }
+        #modal-backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: none; z-index: 200; align-items: center; justify-content: center;}
+        .modal { text-align: center; background: var(--panel-bg); padding: 40px; border-radius: 10px; border: 3px solid; border-image-slice: 1; border-image-source: var(--border-gradient); }
+        .button { background: var(--primary-color); border: 1px solid #fff; color: white; padding: 8px 15px; margin: 4px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .button:hover { filter: brightness(1.2); }
+        .button:disabled { background: #555; cursor: not-allowed; }
+        .item { margin: 5px 0; padding: 10px; border-left: 5px solid; cursor: default; transition: background 0.2s; background: rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center; }
+        .item > div:first-child { cursor: pointer; flex-grow: 1; }
+        .item.equipped { background: linear-gradient(90deg, rgba(46, 204, 113, 0.25), transparent) !important; border: 1px solid var(--success-color); }
+        .progress-bar { width: 100%; height: 12px; background: #333; border-radius: 6px; overflow: hidden; margin: 8px 0; border: 1px solid #555; }
+        .progress-fill { height: 100%; transition: width 0.5s ease; }
+        #expBar { background: linear-gradient(90deg, #27ae60, #f1c40f); }
+        #hpBar { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+        .equipment-slot, .skill-slot { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border: 2px dashed #666; margin: 4px; background: rgba(0, 0, 0, 0.5); text-align: center; font-size: 10px; cursor: pointer; transition: all 0.3s; position: relative; padding: 5px; overflow: hidden; word-wrap: break-word; }
+        .equipment-slot.filled, .skill-slot.filled { border-style: solid; }
+        .cooldown-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); transition: height 0.1s linear; pointer-events: none; }
+        .skill-ready { animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 100, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 255, 100, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 100, 0); } }
+        h3 { color: var(--warn-color); margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid; border-image: var(--border-gradient) 1; padding-bottom: 5px; text-transform: uppercase; }
+        .stat-row { margin: 6px 0; display: flex; justify-content: space-between; }
+        .damage-text { position: absolute; font-weight: bold; pointer-events: none; animation: floatUp 1.5s ease-out forwards; text-shadow: 1px 1px 3px #000; }
+        @keyframes floatUp { to { transform: translateY(-80px); opacity: 0; } }
+        #notification-area { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .notification { padding: 10px 20px; background: rgba(0,0,0,0.8); border-radius: 5px; animation: fadeOut 3s forwards; }
+        @keyframes fadeOut { 0%, 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
+        #gachaResultContent { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .gacha-card { width: 120px; height: 180px; perspective: 1000px; }
+        .gacha-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .gacha-card.is-flipped .gacha-card-inner { transform: rotateY(180deg); }
+        .gacha-card-front, .gacha-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; }
+        .gacha-card-front { background: linear-gradient(45deg, #6a82fb, #fc5c7d); }
+        .gacha-card-back { transform: rotateY(180deg); }
+        .talent-tree { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin: 20px 0; }
+        .talent-node { width: 80px; height: 80px; border: 2px solid #666; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; background: rgba(0,0,0,0.7); font-size: 10px; text-align: center; }
+        .talent-node.unlocked { border-color: var(--success-color); background: rgba(46, 204, 113, 0.2); }
+        .talent-node.available { border-color: var(--warn-color); animation: glow 2s infinite; }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 5px var(--warn-color); } 50% { box-shadow: 0 0 15px var(--warn-color); } }
+        .legendary-glow { animation: legendaryPulse 2s infinite; }
+        @keyframes legendaryPulse { 0%, 100% { box-shadow: 0 0 10px currentColor; } 50% { box-shadow: 0 0 30px currentColor; } }
+        .mythic-sparkle { position: relative; overflow: visible; }
+        .mythic-sparkle::before { content: '✨'; position: absolute; top: -10px; right: -10px; animation: sparkle 1.5s infinite; }
+        @keyframes sparkle { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.2); } }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div id="statsPanel" class="ui-panel">
+                <h3>PLAYER STATS</h3>
+                <div class="stat-row"><span>Level:</span><span id="playerLevel">1</span></div>
+                <div class="stat-row"><span>EXP:</span><span><span id="playerExp">0</span> / <span id="expToNext">100</span></span></div>
+                <div class="progress-bar"><div id="expBar" class="progress-fill"></div></div>
+                <div class="stat-row"><span>HP:</span><span><span id="playerHP">100</span> / <span id="playerMaxHP">100</span></span></div>
+                <div class="progress-bar"><div id="hpBar" class="progress-fill"></div></div>
+                <div class="stat-row"><span>Attack:</span><span id="playerAttack">5</span></div>
+                <div class="stat-row"><span>Attack Speed:</span><span id="playerAttackSpeed">1.0</span></div>
+                <div class="stat-row"><span>Defense:</span><span id="playerDefense">0</span></div>
+                <div class="stat-row"><span>Gold:</span><span id="playerGold">1000</span></div>
+                <div class="stat-row"><span>Tokens:</span><span id="gachaTokens">50</span></div>
+                <div class="stat-row"><span>Talent Points:</span><span id="talentPoints">0</span></div>
+                <div class="stat-row"><span>Floor:</span><span><span id="currentFloor">1</span>-<span id="currentWave">1</span></span></div>
+            </div>
+            
+            <div id="equipmentPanel" class="ui-panel">
+                <h3>EQUIPMENT</h3>
+                Weapon: <div class="equipment-slot" id="weaponSlot">맨손</div>
+                Armor: <div class="equipment-slot" id="armorSlot">없음</div>
+                <h3 style="margin-top:15px;">SKILLS (1,2,3,4)</h3>
+                <div id="skillSlots">
+                    <div class="skill-slot" id="skillSlot0"><div class="cooldown-overlay"></div></div>
+                    <div class="skill-slot" id="skillSlot1"><div class="cooldown-overlay"></div></div>
+                    <div class="skill-slot" id="skillSlot2"><div class="cooldown-overlay"></div></div>
+                    <div class="skill-slot" id="skillSlot3"><div class="cooldown-overlay"></div></div>
+                </div>
+            </div>
+            
+            <div id="inventoryPanel" class="ui-panel">
+                <h3>INVENTORY <button id="closeInventoryButton" class="button" style="float:right; padding: 2px 8px;">X</button></h3>
+                <div id="inventoryFilter">
+                    <button class="button" data-filter="all">All</button>
+                    <button class="button" data-filter="weapon">WPN</button>
+                    <button class="button" data-filter="armor">ARM</button>
+                    <button class="button" data-filter="skill">SKL</button>
+                </div>
+                <div id="inventoryList" style="margin-top: 10px; height: 400px; overflow-y: auto;"></div>
+            </div>
+            
+            <div id="gachaPanel" class="ui-panel">
+                <h3>GACHA <button id="closeGachaButton" class="button" style="float:right; padding: 2px 8px;">X</button></h3>
+                Pity (SSR+): <span id="pityCounter">100</span>
+                <div id="gachaResultContent"></div>
+                <div>
+                    <button class="button" id="gacha1Button">1x (10T)</button>
+                    <button class="button" id="gacha10Button">10x (90T)</button>
+                </div>
+            </div>
+            
+            <div id="talentPanel" class="ui-panel">
+                <h3>TALENT TREE <button id="closeTalentButton" class="button" style="float:right; padding: 2px 8px;">X</button></h3>
+                <p>Available Points: <span id="availableTalentPoints">0</span></p>
+                <div id="talentTree" class="talent-tree"></div>
+            </div>
+            
+            <div id="bottomUIPanel">
+                <button class="button" id="openGachaButton">GACHA</button>
+                <button class="button" id="openTalentButton">TALENTS</button>
+            </div>
+        </div>
+        
+        <div id="modal-backdrop">
+            <div id="floorInfo" class="modal" style="display:none;">
+                <h2>FLOOR CLEARED!</h2>
+                <p id="floorReward"></p>
+                <button class="button" id="nextFloorButton">NEXT</button>
+            </div>
+            <div id="gameOverScreen" class="modal" style="display:none;">
+                <h2>GAME OVER</h2>
+                <p>Final Floor: <span id="finalFloor">1</span></p>
+                <button class="button" id="restartButton">RESTART</button>
+            </div>
+        </div>
+        <div id="notification-area"></div>
+    </div>
+
+<script>
+// ==================================
+// 데이터 정의
+// ==================================
+const RARITY_DATA = {
+  N:   {r: 0.4599999, c:'#95a5a6', p:1.0, name:'Normal'},
+  E:   {r: 0.2500000, c:'#2ecc71', p:1.8, name:'Epic'}, 
+  R:   {r: 0.1500000, c:'#3498db', p:3.2, name:'Rare'},
+  S:   {r: 0.0800000, c:'#9b59b6', p:5.8, name:'Super Rare'},
+  SSR: {r: 0.0070000, c:'#f1c40f', p:15.0, name:'Super Super Rare'},
+  UR:  {r: 0.0020000, c:'#e67e22', p:30.0, name:'Ultra Rare'},
+  L:   {r: 0.0008000, c:'#e74c3c', p:60.0, name:'Legend'},
+  U:   {r: 0.0001000, c:'#ff1493', p:120.0, name:'Unique'},
+  SU:  {r: 0.0000500, c:'#00ffff', p:240.0, name:'Super Unique'},
+  SSU: {r: 0.0000300, c:'#adff2f', p:480.0, name:'Super Super Unique'},
+  M:   {r: 0.0000100, c:'#ffdead', p:960.0, name:'Mythic'},
+  LM:  {r: 0.0000080, c:'#f0e68c', p:1920.0, name:'Legend Mythic'},
+  EN:  {r: 0.0000020, c:'#dda0dd', p:3840.0, name:'Eternal'},
+  G:   {r: 0.0000001, c:'#ffffff', p:7680.0, name:'Genesis'},
+};
+
+
+const TALENT_DATA = {
+    'power1': {name: 'Power I', desc: 'Attack +10%', cost: 1, prereq: []},
+    'health1': {name: 'Vitality I', desc: 'HP +20%', cost: 1, prereq: []},
+    'defense1': {name: 'Defense I', desc: 'Defense +5', cost: 1, prereq: []},
+    'speed1': {name: 'Speed I', desc: 'Attack Speed +15%', cost: 1, prereq: []},
+    'fortune1': {name: 'Fortune I', desc: 'Gold +25%', cost: 1, prereq: []},
+    'power2': {name: 'Power II', desc: 'Attack +20%', cost: 2, prereq: ['power1']},
+    'health2': {name: 'Vitality II', desc: 'HP +40%', cost: 2, prereq: ['health1']},
+    'defense2': {name: 'Defense II', desc: 'Defense +10', cost: 2, prereq: ['defense1']},
+    'speed2': {name: 'Speed II', desc: 'Attack Speed +30%', cost: 2, prereq: ['speed1']},
+    'fortune2': {name: 'Fortune II', desc: 'Gold +50%', cost: 2, prereq: ['fortune1']},
+    'berserker': {name: 'Berserker', desc: 'Low HP = High Damage', cost: 3, prereq: ['power2']},
+    'regeneration': {name: 'Regeneration', desc: 'HP Regen +1/sec', cost: 3, prereq: ['health2']},
+    'reflection': {name: 'Reflection', desc: 'Reflect 20% damage', cost: 3, prereq: ['defense2']},
+    'multishot': {name: 'Multi Shot', desc: '+1 Projectile', cost: 3, prereq: ['speed2']},
+    'treasure': {name: 'Treasure Hunter', desc: 'Token Drop +100%', cost: 3, prereq: ['fortune2']},
+    'master_warrior': {name: 'Weapon Master', desc: 'All weapon damage +50%', cost: 5, prereq: ['berserker']},
+    'immortal': {name: 'Immortal', desc: 'Death = 50% HP restore', cost: 5, prereq: ['regeneration']},
+    'fortress': {name: 'Fortress', desc: 'Damage reduction 30%', cost: 5, prereq: ['reflection']},
+    'time_master': {name: 'Time Master', desc: 'Skill cooldown -50%', cost: 5, prereq: ['multishot']},
+    'golden_touch': {name: 'Golden Touch', desc: 'Kill = Gold x3', cost: 5, prereq: ['treasure']},
+    'transcendence': {name: 'Transcendence', desc: 'All stats +100%', cost: 10, prereq: ['master_warrior', 'immortal', 'fortress', 'time_master', 'golden_touch']}
+};
+
+const WEAPON_DATA = {
+    '맨손':  {t:'p',r:50,  d:0.8, s:1.2, p:0, e:{type:'rect',w:50,h:20,c:'rgba(255,255,255,0.4)'}},
+    '단검':  {t:'h',r:80,  d:1.0, s:1.8, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
+    '검':    {t:'s',r:140, d:1.8, s:1.0, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
+    '창':    {t:'h',r:160, d:2.2, s:0.7, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)'}},
+    '도끼':  {t:'m',r:120, d:2.8, s:0.5, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
+    '망치':  {t:'m',r:150, d:3.5, s:0.4, p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
+    '활':    {t:'r',v:15,  d:1.5, s:0.8, p:0, life:1200, e:{c:'#f1c40f'}},
+    '석궁':  {t:'r',v:18,  d:2.0, s:0.6, p:1, life:1500, e:{c:'#e67e22'}},
+    '지팡이':{t:'g',v:12,  d:1.2, s:1.0, p:1, life:1800, e:{count:3,spread:0.15,c:'#9b59b6'}}
+};
+
+const ARMOR_DATA = {'가죽 갑옷':{},'사슬 갑옷':{},'철판 흉갑':{},'미스릴 갑옷':{},'용비늘 갑옷':{}, '타락한 심장의 갑주':{}, '수호신의 갑옷':{}};
+
+const SKILL_DATA = {
+    '메테오':{type:'aoe',r:120,d:2.5,cd:10,c:'rgba(255,100,0,0.7)'},
+    '연쇄 번개':{type:'chain',t:4,d:0.8,cd:6,c:'rgba(100,100,255,0.8)'},
+    '칼날 폭풍':{type:'aura',r:180,d:0.3,dur:5,tick:0.25,cd:12,c:'rgba(200,200,200,0.5)'},
+    '치유의 빛':{type:'heal',a:0.3,cd:15,c:'rgba(100,255,100,0.8)'},
+    '빙결':{type:'aoe',r:100,d:0.5,cd:8,c:'rgba(100,200,255,0.6)',frz:2},
+    '독 안개':{type:'aura',r:150,d:0.2,dur:8,tick:0.5,cd:10,c:'rgba(100,255,100,0.4)'}
+};
+
+// ==================================
+// HELPER CLASSES
+// ==================================
+class Particle {
+    constructor(x, y, color, size, speed, life) { 
+        this.x=x; this.y=y; this.color=color; this.size=size; this.life=life; this.maxLife=life; 
+        this.vx=speed*(Math.random()-0.5); this.vy=speed*(Math.random()-0.5); 
+    }
+    update(dt) { this.life -= dt; this.x += this.vx * (dt/1000); this.y += this.vy * (dt/1000); }
+    draw(ctx) { 
+        ctx.save(); 
+        ctx.globalAlpha = this.life / this.maxLife; 
+        ctx.fillStyle = this.color; 
+        ctx.beginPath(); 
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); 
+        ctx.fill(); 
+        ctx.restore(); 
+    }
+}
+
+class Enemy {
+    constructor(game, isElite) {
+        this.game = game; this.id = Math.random(); this.isElite = isElite;
+        this.x = game.canvas.width + 50 + Math.random() * 200; this.size = isElite ? 25 : 15;
+        this.y = game.groundY - this.size;
+        this.maxHp = (25 + game.currentFloor * 15) * (isElite ? 2.5 : 1); this.hp = this.maxHp;
+        this.damage = (5 + game.currentFloor * 1.5) * (isElite ? 1.8 : 1); this.speed = (40 + game.currentFloor * 12) * (isElite ? 0.8 : 1);
+        this.lastAttackTime = 0; this.isFrozen = false; this.freezeTimer = 0;
+    }
+    update(dt, player, dealDamageCallback) {
+        if (this.isFrozen) { this.freezeTimer -= dt; if (this.freezeTimer <= 0) this.isFrozen = false; return; }
+        const dx = player.x - this.x;
+        if (Math.abs(dx) > this.size) { this.x += Math.sign(dx) * this.speed * (dt / 1000); }
+        if (Math.abs(dx) < this.size + player.size + 10 && Date.now() - this.lastAttackTime > 2000) {
+            this.lastAttackTime = Date.now(); dealDamageCallback(Math.floor(this.damage));
+        }
+    }
+    draw(ctx) {
+        ctx.fillStyle = this.isElite ? '#e74c3c' : '#c0392b'; if (this.isFrozen) ctx.fillStyle = '#3498db';
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        const bw = 40, bx = this.x - bw / 2, by = this.y - this.size - 10;
+        ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, 5);
+        ctx.fillStyle = '#2ecc71'; ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), 5);
+    }
+    takeDamage(d) { this.hp -= d; }
+    freeze(dur) { this.isFrozen = true; this.freezeTimer = dur * 1000; }
+}
+
+class BaseEffect { 
+    constructor(g,dur){this.game=g;this.life=dur;this.maxLife=dur;this.isDone=false;} 
+    update(dt){this.life-=dt;if(this.life<=0)this.isDone=true;} 
+    draw(ctx){} 
+}
+
+class MeleeEffect extends BaseEffect {
+    constructor(g, w, rarity = 'N') {
+        super(g, 180); this.p = g.player; this.w = w; this.rarity = rarity;
+        this.hit = new Set(); this.dmg = this.p.attackPower * this.w.d;
+        const rarityBonus = Object.keys(RARITY_DATA).indexOf(rarity) * 0.08;
+        this.a = { x: this.p.x, y: this.p.y, t: w.e.type, r: w.r * (1 + rarityBonus) };
+        if (this.a.t === 'rect') { this.a.w = w.e.w * (1 + rarityBonus); this.a.h = w.e.h; } 
+        else if (this.a.t === 'arc') { this.startAngle = -0.8; this.endAngle = 0.8; }
+        this.checkHits();
+    }
+    checkHits(){
+        this.game.enemies.forEach(e=>{
+            if(this.hit.has(e.id))return;
+            if(this.isColliding(e)){ this.game.dealDamage(e,this.dmg); this.hit.add(e.id); if(!this.w.p)this.isDone=true; }
+        });
+        this.game.particles.push(...Array(10).fill(0).map(()=>new Particle(this.p.x+this.a.r/2,this.p.y,'#fff',Math.random()*3+1,80,500)));
+    }
+    isColliding(e){
+        if(this.a.t==='arc'){ const dx=e.x-this.a.x,dy=e.y-this.a.y; return Math.hypot(dx,dy)<this.a.r+e.size; }
+        else if(this.a.t==='rect'){ const rx=this.a.x+10,ry=this.a.y-this.a.h/2,dx=Math.abs(e.x-rx-this.a.w/2),dy=Math.abs(e.y-ry-this.a.h/2);
+            if(dx>this.a.w/2+e.size||dy>this.a.h/2+e.size)return false;
+            if(dx<=this.a.w/2||dy<=this.a.h/2)return true;
+            return(dx-this.a.w/2)**2+(dy-this.a.h/2)**2<=e.size**2;
+        } return false;
+    }
+    draw(ctx){
+        const prog=1-this.life/this.maxLife; ctx.save(); ctx.fillStyle=this.w.e.c; ctx.globalAlpha=Math.sin(prog*Math.PI);
+        ctx.translate(this.p.x,this.p.y);
+        if(this.a.t==='arc'){ const ang=this.startAngle+(this.endAngle-this.startAngle)*prog; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,this.a.r,this.startAngle,ang); ctx.closePath(); ctx.fill(); }
+        else if(this.a.t==='rect'){ ctx.fillRect(10,-this.a.h/2,this.a.w,this.a.h); }
+        ctx.restore();
+    }
+}
+
+class SkillEffect extends BaseEffect {
+    constructor(g,p,s){
+        super(g,s.dur?s.dur*1000:200); this.p=p;this.s=s;this.x=g.mouse.x;this.y=g.mouse.y;
+        this.dmg=this.p.attackPower*this.s.d;this.tick=0;this.hit=new Set(); this.activate();
+    }
+    activate(){
+        switch(this.s.type){
+            case'aoe': this.game.enemies.forEach(e=>{ if(Math.hypot(this.x-e.x,this.y-e.y)<this.s.r){ this.game.dealDamage(e,this.dmg,null); if(this.s.frz)e.freeze(this.s.frz); } });
+                this.game.particles.push(...Array(30).fill(0).map(()=>new Particle(this.x,this.y,this.s.color,Math.random()*5+2,200,800))); break;
+            case'chain': let t=null; for(let i=0;i<this.s.t;i++){ const nt=this.findClosest(t?t.x:this.p.x,t?t.y:this.p.y); if(nt){this.game.dealDamage(nt,this.dmg,null);this.hit.add(nt.id);t=nt;}else break;} break;
+            case'heal': const h=this.p.maxHp*this.s.a; this.p.hp=Math.min(this.p.maxHp,this.p.hp+h); this.game.createFloatingText(`+${Math.ceil(h)}`,this.p.x,this.p.y,'100,255,100',22); break;
+        }
+    }
+    findClosest(x,y,excluded=[]){
+        let c=null,m=Infinity; this.game.enemies.forEach(e=>{ if(excluded.some(ex => ex && ex.id === e.id) || this.hit.has(e.id))return; const d=Math.hypot(x-e.x,y-e.y); if(d<m){m=d;c=e;} }); return c;
+    }
+    update(dt){
+        super.update(dt); if(this.s.type==='aura'){ this.tick-=dt; if(this.tick<=0){ this.tick=this.s.tick*1000; this.game.enemies.forEach(e=>{ if(Math.hypot(this.p.x-e.x,this.p.y-e.y)<this.s.r){this.game.dealDamage(e,this.dmg,null);} }); } }
+    }
+    draw(ctx){
+        ctx.save(); ctx.globalAlpha=Math.max(0,this.life/this.maxLife); ctx.fillStyle=this.s.color;
+        if(this.s.type==='aoe'||this.s.type==='aura'){ const x=this.s.type==='aura'?this.p.x:this.x,y=this.s.type==='aura'?this.p.y:this.y; ctx.beginPath(); ctx.arc(x,y,this.s.r,0,Math.PI*2); ctx.fill(); }
+        ctx.restore();
+    }
+}
+
+// ==================================
+// MAIN GAME CLASS
+// ==================================
+class Game {
+    constructor(){
+        this.canvas=document.getElementById('gameCanvas');
+        this.ctx=this.canvas.getContext('2d');
+        this.init();
+    }
+    
+    init(){
+        this.isGameOver=false;
+        this.canvas.width=1280; this.canvas.height=720; this.groundY=this.canvas.height-80;
+        this.talents = {}; this.talentPoints = 0;
+        this.resetPlayerState();
+        this.enemies=[]; this.projectiles=[]; this.activeEffects=[]; this.floatingTexts=[]; this.particles=[];
+        this.currentFloor=1; this.currentWave=1; this.totalWaves=5; this.inventoryFilter='all'; this.floorCompleted=false;
+        this.pityCounter=100; this.keys={}; this.mouse={x:0,y:0,isDown:false}; this.lastAttackTime=0;
+        
+        ['inventoryPanel','gachaPanel','talentPanel'].forEach(id=>document.getElementById(id).style.display='none');
+        document.getElementById('ui').style.display='block';
+        this.closeModal('gameOverScreen');
+        
+        if(!this.eventListenersAttached){ this.setupEventListeners(); this.eventListenersAttached=true; }
+        
+        this.loadGame();
+        this.spawnWave();
+        this.initTalentTree();
+        
+        if(!this.gameLoopRunning)this.gameLoop();
+    }
+    
+    resetPlayerState(){
+        this.player={
+            x:200,y:this.canvas.height-80-20,size:20,hp:100,maxHp:100,defense:0, level:1,exp:0,expToNext:100,
+            gold:1000,gachaTokens:100, baseAttackPower:5,attackPower:5,skillCooldowns:[0,0,0,0],
+            bonusAttack:0,bonusHp:0,bonusDefense:0,bonusSpeed:0,bonusGold:0
+        };
+        this.equipment={weapon:null,armor:null,skills:[null,null,null,null]}; this.inventory=[];
+        if(!this.talents) { this.talents = {}; this.talentPoints = 0; }
+        this.updateStats();
+    }
+
+    setupEventListeners(){
+        const kh=(e,v)=>{ this.keys[e.key.toLowerCase()]=v; if(v&&e.key>='1'&&e.key<='4')this.useSkill(parseInt(e.key)-1); };
+        window.addEventListener('keydown',e=>kh(e,true)); window.addEventListener('keyup',e=>kh(e,false));
+        this.canvas.addEventListener('mousemove',e=>{ const r=this.canvas.getBoundingClientRect(); this.mouse.x=e.clientX-r.left; this.mouse.y=e.clientY-r.top; });
+        this.canvas.addEventListener('mousedown',()=>{this.mouse.isDown=true;}); this.canvas.addEventListener('mouseup',()=>{this.mouse.isDown=false;});
+        this.canvas.addEventListener('click',()=>this.attack());
+        const buttons = { 
+            gacha1Button:()=>this.performGacha(1), gacha10Button:()=>this.performGacha(10), 
+            closeInventoryButton:()=>this.closeView('inventoryPanel'), openGachaButton:()=>this.openView('gachaPanel'), 
+            closeGachaButton:()=>this.closeView('gachaPanel'), openTalentButton:()=>this.openView('talentPanel'),
+            closeTalentButton:()=>this.closeView('talentPanel'), restartButton:()=>this.init(), 
+            nextFloorButton:()=>this.nextFloor() 
+        };
+        Object.entries(buttons).forEach(([id,func])=>document.getElementById(id).addEventListener('click',func));
+        document.getElementById('inventoryFilter').addEventListener('click',e=>{ if(e.target.dataset.filter)this.filterInventory(e.target.dataset.filter); });
+        ['weaponSlot','armorSlot'].forEach(id=>document.getElementById(id).addEventListener('click',()=>this.openView('inventoryPanel',id.replace('Slot',''))));
+        for(let i=0;i<4;i++){ document.getElementById(`skillSlot${i}`).addEventListener('click',()=>this.openView('inventoryPanel','skill')); }
+        setInterval(()=>{if(!this.isGameOver)this.saveGame();},5000);
+    }
+    
+    gameLoop(){
+        this.gameLoopRunning=true; if(this.isGameOver){ this.gameLoopRunning=false; return; }
+        const n=performance.now(),dt=Math.min(n-(this.lastFrameTime||n),50);
+        this.lastFrameTime=n; this.update(dt); this.draw();
+        requestAnimationFrame(()=>this.gameLoop());
+    }
+    
+    update(dt){
+        if(this.keys['a']||this.keys['arrowleft'])this.player.x-=300*(dt/1000);
+        if(this.keys['d']||this.keys['arrowright'])this.player.x+=300*(dt/1000);
+        this.player.x=Math.max(this.player.size,Math.min(this.canvas.width-this.player.size,this.player.x));
+        this.player.skillCooldowns=this.player.skillCooldowns.map(cd=>Math.max(0,cd-dt));
+        this.applyTalentEffects(dt);
+        for(let key of ['activeEffects','projectiles','enemies','particles','floatingTexts']){
+            for(let i=this[key].length-1;i>=0;i--){
+                const item=this[key][i]; if(item.update)item.update(dt,this.player,dmg=>this.takeDamage(dmg));
+                if(key==='floatingTexts'){ item.life -= dt; item.alpha = Math.max(0, item.life / 1500); item.y -= 50 * (dt/1000); if(item.life <= 0 || item.alpha <= 0) this[key].splice(i,1); }
+                else if(item.life<=0||(key==='projectiles'&&(item.x>1300||item.x<0))) { this[key].splice(i,1); }
+            }
+        }
+        this.handleCollisions();
+        if(this.enemies.length===0&&!this.floorCompleted){
+            if(this.currentWave<this.totalWaves){ this.currentWave++; this.spawnWave(); } else { this.completeFloor(); }
+        }
+        this.updateUI();
+    }
+    
+    applyTalentEffects(dt) { if(this.talents['regeneration']) { this.player.hp = Math.min(this.player.maxHp, this.player.hp + (dt/1000)); } }
+    
+    handleCollisions(){
+        this.enemies.forEach(e=>{ this.projectiles.forEach((p,pi)=>{ if(Math.hypot(p.x-e.x,p.y-e.y)<e.size){ this.dealDamage(e,this.player.attackPower); if(!p.p)this.projectiles.splice(pi,1); } }); });
+    }
+    
+    draw(){
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); this.ctx.fillStyle='#4a524a';
+        this.ctx.fillRect(0,this.groundY,this.canvas.width,this.canvas.height-this.groundY);
+        for(let key of ['activeEffects','particles','projectiles','enemies']){ this[key].forEach(item=>item.draw(this.ctx)); }
+        this.ctx.fillStyle='#3498db'; this.ctx.beginPath(); this.ctx.arc(this.player.x,this.player.y,this.player.size,0,2*Math.PI); this.ctx.fill();
+        this.floatingTexts.forEach(t=>{ this.ctx.fillStyle=`rgba(${t.c},${t.alpha})`; this.ctx.font=`bold ${t.s}px Orbitron`; this.ctx.fillText(t.text,t.x,t.y); });
+        if(this.mouse.isDown){
+            const w=WEAPON_DATA[this.equipment.weapon?.name||'맨손'];
+            if(w.t==='r'||w.t==='g'){
+                const pLife=this.equipment.weapon?w.life*(1+Object.keys(RARITY_DATA).indexOf(this.equipment.weapon.rarity)*0.08):w.life;
+                const dist=pLife/1000*w.v*30; this.ctx.beginPath(); this.ctx.moveTo(this.player.x,this.player.y); this.ctx.lineTo(this.player.x+dist,this.player.y); this.ctx.strokeStyle='rgba(255,255,255,0.3)'; this.ctx.stroke();
+            } else {
+                const rarityBonus=this.equipment.weapon?Object.keys(RARITY_DATA).indexOf(this.equipment.weapon.rarity)*0.08:0;
+                this.ctx.save(); this.ctx.fillStyle='rgba(255,255,255,0.2)'; this.ctx.translate(this.player.x,this.player.y);
+                if(w.e.type==='arc'){ this.ctx.beginPath(); this.ctx.arc(0,0,w.r*(1+rarityBonus),-0.8,0.8); this.ctx.lineTo(0,0); this.ctx.fill(); }
+                else if(w.e.type==='rect'){ this.ctx.fillRect(10,-w.e.h/2,w.e.w*(1+rarityBonus),w.e.h); }
+                this.ctx.restore();
+            }
+        }
+    }
+    
+    attack(){
+        const w=WEAPON_DATA[this.equipment.weapon?.name||'맨손'];
+        const speedBonus = (this.talents['speed1'] ? 0.15 : 0) + (this.talents['speed2'] ? 0.3 : 0);
+        const attackSpeed = w.s * (1 + speedBonus);
+        if(Date.now()-this.lastAttackTime<1000/attackSpeed)return; this.lastAttackTime=Date.now();
+        if(w.t==='r'||w.t==='g'){
+            const c=w.e.count||1; const multishot = this.talents['multishot'] ? 1 : 0;
+            for(let i=0;i<c+multishot;i++){
+                const a=(i-(c+multishot-1)/2)*(w.e.spread||0);
+                const pLife=this.equipment.weapon?w.life*(1+Object.keys(RARITY_DATA).indexOf(this.equipment.weapon.rarity)*0.08):w.life;
+                this.projectiles.push({
+                    x:this.player.x,y:this.player.y, vx:Math.cos(a)*w.v*30,vy:Math.sin(a)*w.v*30, p:w.p,
+                    c:this.equipment.weapon?RARITY_DATA[this.equipment.weapon.rarity].c:'#fff', life:pLife,
+                    update(dt){this.life-=dt;this.x+=this.vx*(dt/1000);this.y+=this.vy*(dt/1000);},
+                    draw(ctx){ctx.fillStyle=this.c;ctx.beginPath();ctx.arc(this.x,this.y,7,0,2*Math.PI);ctx.fill();}
+                });
+            }
+        }else{ this.activeEffects.push(new MeleeEffect(this,w,this.equipment.weapon?.rarity||'N')); }
+    }
+    
+    useSkill(i){
+        const s=this.equipment.skills[i]; if(!s||this.player.skillCooldowns[i]>0)return;
+        const d=SKILL_DATA[s.name]; const cooldownReduction = this.talents['time_master'] ? 0.5 : 0;
+        this.player.skillCooldowns[i]=d.cd*1000*(1-cooldownReduction); this.activeEffects.push(new SkillEffect(this,this.player,d));
+    }
+    
+    dealDamage(e,d,w=this.equipment.weapon){
+        let finalDamage = d;
+        if(this.talents['berserker'] && this.player.hp < this.player.maxHp * 0.3) { finalDamage *= 2; }
+        if(this.talents['weapon_master']) { finalDamage *= 1.5; }
+        const f=Math.floor(finalDamage*(w?WEAPON_DATA[w.name].d:1)); e.takeDamage(f);
+        this.createFloatingText(`-${f}`,e.x,e.y,'255,200,50',18);
+        if(this.talents['reflection'] && Math.random() < 0.2) {
+            e.takeDamage(Math.floor(f * 0.2)); this.createFloatingText(`반사!`,e.x,e.y-20,'255,100,255',14);
+        }
+        if(w && w.special){ if(w.special==='흡혈'){ this.player.hp=Math.min(this.player.maxHp,this.player.hp+Math.ceil(f*0.1)); } }
+        if(e.hp<=0)this.killEnemy(e,w);
+    }
+    
+    killEnemy(e,w){
+        if(w && w.special==='처치 시 폭발'){ this.activeEffects.push(new SkillEffect(this,this.player,{type:'aoe',r:80,d:0.5,c:'rgba(255,150,50,0.6)'})); }
+        this.enemies=this.enemies.filter(en=>en.id!==e.id);
+        this.gainExp(e.isElite?50:20);
+        let goldGain = e.isElite?25:10;
+        if(this.talents['fortune1']) goldGain *= 1.25; if(this.talents['fortune2']) goldGain *= 1.5; if(this.talents['golden_touch']) goldGain *= 3;
+        this.player.gold += Math.floor(goldGain);
+        const tokenChance = this.talents['treasure'] ? 0.4 : 0.2;
+        if(Math.random() < tokenChance) this.player.gachaTokens++;
+    }
+    
+    takeDamage(d){
+        let finalDamage = d - this.player.defense;
+        if(this.talents['fortress']) { finalDamage *= 0.7; }
+        finalDamage = Math.max(1, finalDamage);
+        this.player.hp -= finalDamage; this.createFloatingText(`-${Math.floor(finalDamage)}`,this.player.x,this.player.y,'255,50,50',24);
+        if(this.player.hp <= 0) {
+            if(this.talents['immortal']) { this.player.hp = Math.floor(this.player.maxHp * 0.5); this.createFloatingText(`불멸!`,this.player.x,this.player.y-30,'255,215,0',28); delete this.talents['immortal']; } 
+            else { this.gameOver(); }
+        }
+    }
+    
+    levelUp(){
+        this.player.level++; this.player.exp=0; this.player.expToNext=Math.floor(100*(1.2**this.player.level));
+        this.player.maxHp+=20; this.player.hp=this.player.maxHp; this.player.baseAttackPower+=2;
+        this.talentPoints += this.player.level <= 10 ? 1 : (this.player.level <= 25 ? 2 : 3);
+        this.updateStats();
+        this.createNotification(`레벨 업! 특성 포인트 +${this.player.level <= 10 ? 1 : (this.player.level <= 25 ? 2 : 3)}`, 'success');
+    }
+    
+    gainExp(a){ this.player.exp+=a; if(this.player.exp>=this.player.expToNext)this.levelUp(); }
+    
+    rollGacha(){
+        let rarity = 'N';
+        if(--this.pityCounter <= 0) {
+            const highRarities = ['SSR','UR','L','U','SU','SSU','M','LM','EN','G'];
+            const weights = [70, 20, 7, 2, 0.8, 0.15, 0.04, 0.008, 0.002, 0.0005];
+            const totalWeight = weights.reduce((a,b) => a+b, 0); let random = Math.random() * totalWeight;
+            for(let i = 0; i < highRarities.length; i++) { random -= weights[i]; if(random <= 0) { rarity = highRarities[i]; break; } }
+            this.pityCounter = 100;
+        } else {
+            const random = Math.random(); let cumulative = 0;
+            for(const [key, data] of Object.entries(RARITY_DATA)) { cumulative += data.r; if(random < cumulative) { rarity = key; break; } }
+        }
+        const typeRandom = Math.random(); let type, namePool;
+        if(typeRandom < 0.45) { type = 'weapon'; namePool = Object.keys(WEAPON_DATA).filter(name => name !== '맨손'); }
+        else if(typeRandom < 0.8) { type = 'armor'; namePool = Object.keys(ARMOR_DATA); }
+        else { type = 'skill'; namePool = Object.keys(SKILL_DATA); }
+        const name = namePool[Math.floor(Math.random() * namePool.length)];
+        const newItem = { id: `${Date.now()}${Math.random()}`, name: name, type: type, rarity: rarity, level: 0, power: Math.floor(5 * RARITY_DATA[rarity].p) };
+        if(Object.keys(RARITY_DATA).indexOf(rarity) >= 4 && type === 'weapon') { newItem.special = ['흡혈', '처치 시 폭발'][Math.floor(Math.random() * 2)]; }
+        return newItem;
+    }
+    
+    enhanceItem(id){
+        const i=this.inventory.find(it=>it.id===id); if(!i||i.level>=10)return;
+        const c=Math.floor(50*(2**i.level)); if(this.player.gold<c){ this.createNotification('골드가 부족합니다!','error'); return; }
+        this.player.gold-=c; const s=Math.max(0.1,0.95-(i.level*0.08));
+        if(Math.random()<s){ i.level++; i.power=Math.floor(i.power*1.3); this.createNotification(`(+${i.level}) ${i.name} 강화 성공!`,'success'); }
+        else{ this.createNotification('강화 실패...','error'); }
+        this.updateStats(); this.updateInventoryDisplay();
+    }
+    
+    updateStats(){
+        const w=this.equipment.weapon,a=this.equipment.armor;
+        let baseAttack = (this.player.baseAttackPower||5) + (w?w.power:0); let baseHp = 100 + (this.player.level-1)*20; let baseDefense = a?a.power:0;
+        if(this.talents && this.talents['power1']) baseAttack *= 1.1; if(this.talents && this.talents['power2']) baseAttack *= 1.2;
+        if(this.talents && this.talents['health1']) baseHp *= 1.2; if(this.talents && this.talents['health2']) baseHp *= 1.4;
+        if(this.talents && this.talents['defense1']) baseDefense += 5; if(this.talents && this.talents['defense2']) baseDefense += 10;
+        if(this.talents && this.talents['transcendence']) { baseAttack *= 2; baseHp *= 2; baseDefense *= 2; }
+        this.player.attackPower = Math.floor(baseAttack); this.player.defense = Math.floor(baseDefense); this.player.maxHp = Math.floor(baseHp);
+        if(this.player.hp > this.player.maxHp) { this.player.hp = this.player.maxHp; }
+        this.updateUI();
+    }
+    
+    updateUI(){
+        const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerGold': this.player.gold, 'gachaTokens': this.player.gachaTokens, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
+        Object.entries(statMappings).forEach(([elementId, value]) => { const element = document.getElementById(elementId); if(element) { element.textContent = value; } });
+        const hpBar = document.getElementById('hpBar'); if(hpBar) hpBar.style.width = `${Math.max(0, this.player.hp / this.player.maxHp * 100)}%`;
+        const expBar = document.getElementById('expBar'); if(expBar) expBar.style.width = `${this.player.exp / this.player.expToNext * 100}%`;
+        const attackSpeed = document.getElementById('playerAttackSpeed');
+        if(attackSpeed) {
+            const baseSpeed = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2;
+            const speedBonus = (this.talents['speed1'] ? 0.15 : 0) + (this.talents['speed2'] ? 0.3 : 0);
+            attackSpeed.textContent = (baseSpeed * (1 + speedBonus)).toFixed(1);
+        }
+        ['weapon', 'armor'].forEach(type => {
+            const item = this.equipment[type]; const slot = document.getElementById(`${type}Slot`);
+            if(slot) {
+                if(item) {
+                    const rarityData = RARITY_DATA[item.rarity]; slot.innerHTML = `<span style="color:${rarityData.c}">(${item.rarity})</span> ${item.name} +${item.level}`; slot.style.borderColor = rarityData.c; slot.classList.add('filled');
+                    if(Object.keys(RARITY_DATA).indexOf(item.rarity) >= 6) { slot.classList.add('legendary-glow'); }
+                    if(Object.keys(RARITY_DATA).indexOf(item.rarity) >= 10) { slot.classList.add('mythic-sparkle'); }
+                } else {
+                    slot.innerHTML = type === 'weapon' ? '맨손' : '없음'; slot.style.borderColor = '#666'; slot.classList.remove('filled', 'legendary-glow', 'mythic-sparkle');
+                }
+            }
+        });
+        this.equipment.skills.forEach((skill, index) => {
+            const slot = document.getElementById(`skillSlot${index}`);
+            if(slot) {
+                if(skill) {
+                    slot.textContent = skill.name.substring(0, 2); slot.style.borderColor = RARITY_DATA[skill.rarity].c; slot.classList.add('filled');
+                    const cooldownOverlay = slot.querySelector('.cooldown-overlay'); const isReady = this.player.skillCooldowns[index] <= 0;
+                    slot.classList.toggle('skill-ready', isReady);
+                    if(cooldownOverlay) { const cooldownPercent = this.player.skillCooldowns[index] / (SKILL_DATA[skill.name].cd * 1000) * 100; cooldownOverlay.style.height = `${Math.max(0, cooldownPercent)}%`; }
+                } else {
+                    slot.textContent = ''; slot.style.borderColor = '#666'; slot.classList.remove('filled', 'skill-ready');
+                    const cooldownOverlay = slot.querySelector('.cooldown-overlay'); if(cooldownOverlay) cooldownOverlay.style.height = '0%';
+                }
+            }
+        });
+    }
+
+    performGacha(count) {
+        const cost = count === 1 ? 10 : 90; if(this.player.gachaTokens < cost) { this.createNotification('토큰이 부족합니다!', 'error'); return; }
+        this.player.gachaTokens -= cost;
+        const tokenElement = document.getElementById('gachaTokens'); if(tokenElement) { tokenElement.textContent = this.player.gachaTokens; }
+        const results = []; for(let i = 0; i < count; i++) { results.push(this.rollGacha()); }
+        this.inventory.push(...results); this.showGachaResult(results); this.updateUI();
+    }
+
+    // showGachaResult 함수 완성 (첫 번째 파일에서 잘린 부분)
+showGachaResult(results) {
+    const container = document.getElementById('gachaResultContent');
+    container.innerHTML = '';
+    
+    results.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'gacha-card';
+        
+        const inner = document.createElement('div');
+        inner.className = 'gacha-card-inner';
+        
+        const front = document.createElement('div');
+        front.className = 'gacha-card-front';
+        front.innerHTML = '<div style="font-size: 24px;">?</div>';
+        
+        const back = document.createElement('div');
+        back.className = 'gacha-card-back';
+        const rarityData = RARITY_DATA[item.rarity];
+        back.style.background = `radial-gradient(ellipse at center, ${rarityData.c} 0%, #000 100%)`;
+        back.style.color = item.rarity === 'G' ? '#000' : '#fff';
+        back.innerHTML = `
+            <strong style="color:${rarityData.c}; text-shadow: 0 0 10px ${rarityData.c};">(${item.rarity})</strong>
+            <br>${item.name}
+            <br><small>+${item.level}</small>
+            ${item.special ? `<br><small style="color: gold;">${item.special}</small>` : ''}
+        `;
+        
+        inner.appendChild(front);
+        inner.appendChild(back);
+        card.appendChild(inner);
+        container.appendChild(card);
+        
+        // 카드 뒤집기 애니메이션
+        setTimeout(() => {
+            card.classList.add('is-flipped');
+            
+            // 등급별 화려한 효과
+            const rarityIndex = Object.keys(RARITY_DATA).indexOf(item.rarity);
+            if(rarityIndex >= 4) { // SSR 이상
+                const particleCount = 20 + rarityIndex * 10;
+                const particleSpeed = 200 + rarityIndex * 50;
+                const particleLife = 1000 + rarityIndex * 200;
+                
+                // 파티클 효과
+                for(let i = 0; i < particleCount; i++) {
+                    this.particles.push(new Particle(
+                        this.canvas.width/2 + (Math.random() - 0.5) * 200,
+                        this.canvas.height/2 + (Math.random() - 0.5) * 200,
+                        rarityData.c,
+                        Math.random() * 5 + 3,
+                        particleSpeed,
+                        particleLife
+                    ));
+                }
+                
+                // 화면 효과음 (시각적 표현)
+                if(rarityIndex >= 8) { // M등급 이상
+                    this.createNotification(`🌟 ${rarityData.name.toUpperCase()} 등급 획득! 🌟`, 'success');
+                }
+            }
+        }, 100 + index * 150);
+    });
+}
+
+// 특성 트리 초기화
+initTalentTree() {
+    const container = document.getElementById('talentTree');
+    container.innerHTML = '';
+    
+    const talentLayout = [
+        ['power1', 'health1', 'defense1', 'speed1', 'fortune1'],
+        ['power2', 'health2', 'defense2', 'speed2', 'fortune2'],
+        ['berserker', 'regeneration', 'reflection', 'multishot', 'treasure'],
+        ['master_warrior', 'immortal', 'fortress', 'time_master', 'golden_touch'],
+        ['transcendence', '', '', '', '']
+    ];
+    
+    talentLayout.forEach(row => {
+        row.forEach(talentId => {
+            if(!talentId) {
+                const empty = document.createElement('div');
+                container.appendChild(empty);
+                return;
+            }
+            
+            const talent = TALENT_DATA[talentId];
+            const node = document.createElement('div');
+            node.className = 'talent-node';
+            node.innerHTML = `<div style="font-size: 8px; font-weight: bold;">${talent.name}</div><div style="font-size: 7px;">${talent.desc}</div><div style="font-size: 6px;">Cost: ${talent.cost}</div>`;
+            
+            const isUnlocked = this.talents[talentId];
+            const canUnlock = this.canUnlockTalent(talentId);
+            
+            if(isUnlocked) {
+                node.classList.add('unlocked');
+            } else if(canUnlock) {
+                node.classList.add('available');
+                node.addEventListener('click', () => this.unlockTalent(talentId));
+            }
+            
+            container.appendChild(node);
+        });
+    });
+}
+
+// 특성 해금 가능 여부 확인
+canUnlockTalent(talentId) {
+    const talent = TALENT_DATA[talentId];
+    if(this.talents[talentId]) return false;
+    if(this.talentPoints < talent.cost) return false;
+    
+    for(const prereq of talent.prereq) {
+        if(!this.talents[prereq]) return false;
+    }
+    
+    return true;
+}
+
+// 특성 해금
+unlockTalent(talentId) {
+    const talent = TALENT_DATA[talentId];
+    if(!this.canUnlockTalent(talentId)) return;
+    
+    this.talentPoints -= talent.cost;
+    this.talents[talentId] = true;
+    
+    this.createNotification(`${talent.name} 특성을 획득했습니다!`, 'success');
+    this.updateStats();
+    this.initTalentTree();
+}
+
+// 알림 생성 함수
+createNotification(message, type = 'info') {
+    const notificationArea = document.getElementById('notification-area');
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    
+    switch(type) {
+        case 'success':
+            notification.style.backgroundColor = 'rgba(46, 204, 113, 0.8)';
+            break;
+        case 'error':
+            notification.style.backgroundColor = 'rgba(231, 76, 60, 0.8)';
+            break;
+        case 'warning':
+            notification.style.backgroundColor = 'rgba(241, 196, 15, 0.8)';
+            break;
+        default:
+            notification.style.backgroundColor = 'rgba(52, 152, 219, 0.8)';
+    }
+    
+    notificationArea.appendChild(notification);
+    
+    setTimeout(() => {
+        if(notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+// 아이템 장착 함수
+equipItem(item) {
+    if(item.type === 'weapon') {
+        this.equipment.weapon = item;
+    } else if(item.type === 'armor') {
+        this.equipment.armor = item;
+    } else if(item.type === 'skill') {
+        for(let i = 0; i < 4; i++) {
+            if(!this.equipment.skills[i]) {
+                this.equipment.skills[i] = item;
+                break;
+            }
+        }
+    }
+    
+    this.updateStats();
+    this.updateInventoryDisplay();
+    this.createNotification(`${item.name} 장착!`, 'success');
+}
+
+// 인벤토리 필터링
+filterInventory(filter) {
+    this.inventoryFilter = filter;
+    this.updateInventoryDisplay();
+}
+
+// 플로팅 텍스트 생성
+createFloatingText(text, x, y, color = '255,255,255', size = 20) {
+    this.floatingTexts.push({
+        text: text,
+        x: x,
+        y: y,
+        c: color,
+        s: size,
+        alpha: 1,
+        life: 1500
+    });
+}
+
+// 모달 열기/닫기
+openModal(id) {
+    document.getElementById('modal-backdrop').style.display = 'flex';
+    document.getElementById(id).style.display = 'block';
+}
+
+closeModal(id) {
+    document.getElementById('modal-backdrop').style.display = 'none';
+    document.getElementById(id).style.display = 'none';
+}
+
+// 게임 오버
+gameOver() {
+    this.isGameOver = true;
+    document.getElementById('finalFloor').textContent = this.currentFloor;
+    this.openModal('gameOverScreen');
+    localStorage.removeItem('hackSlashGame_v17');
+}
+
+// 웨이브 생성
+spawnWave() {
+    for(let i = 0; i < 3 + this.currentFloor; i++) {
+        this.enemies.push(new Enemy(this, Math.random() < 0.1 * this.currentFloor));
+    }
+}
+
+// 층 완료
+completeFloor() {
+    this.floorCompleted = true;
+    const goldReward = 100 * this.currentFloor;
+    const tokenReward = 5 * this.currentFloor;
+    this.player.gold += goldReward;
+    this.player.gachaTokens += tokenReward;
+    
+    document.getElementById('floorReward').innerHTML = `Gold +${goldReward}<br>Tokens +${tokenReward}`;
+    this.openModal('floorInfo');
+}
+
+// 다음 층으로
+nextFloor() {
+    this.currentFloor++;
+    this.currentWave = 1;
+    this.floorCompleted = false;
+    this.closeModal('floorInfo');
+    this.spawnWave();
+}
+
+// 인벤토리 표시 업데이트
+updateInventoryDisplay() {
+    const list = document.getElementById('inventoryList');
+    list.innerHTML = '';
+    
+    const filteredItems = this.inventoryFilter === 'all' ? 
+        this.inventory : 
+        this.inventory.filter(item => item.type === this.inventoryFilter);
+    
+    filteredItems.sort((a, b) => 
+        Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity)
+    );
+    
+    filteredItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `item ${item.rarity}`;
+        const rarityColor = RARITY_DATA[item.rarity].c;
+        div.style.borderLeftColor = rarityColor;
+        
+        const isEquipped = Object.values(this.equipment).flat().some(e => e?.id === item.id);
+        if(isEquipped) div.classList.add('equipped');
+        
+        const cost = Math.floor(50 * (2 ** item.level));
+        
+        const itemDiv = document.createElement('div');
+        itemDiv.innerHTML = `
+            <strong style="color:${rarityColor}">(${item.rarity}) ${item.name} (+${item.level})</strong>
+            <br><small>Power: ${item.power}${item.special ? ' | ' + item.special : ''}</small>
+        `;
+        itemDiv.addEventListener('click', () => this.equipItem(item));
+        
+        const enhanceButton = document.createElement('button');
+        enhanceButton.className = 'button';
+        enhanceButton.textContent = `강화(${cost}G)`;
+        enhanceButton.disabled = item.level >= 10;
+        enhanceButton.onclick = () => this.enhanceItem(item.id);
+        
+        div.appendChild(itemDiv);
+        div.appendChild(enhanceButton);
+        list.appendChild(div);
+    });
+}
+
+// 뷰 열기/닫기
+openView(panelId, filter) {
+    document.getElementById(panelId).style.display = 'block';
+    if(panelId === 'inventoryPanel') {
+        this.filterInventory(filter || 'all');
+    } else if(panelId === 'talentPanel') {
+        this.initTalentTree();
+    }
+}
+
+closeView(panelId) {
+    document.getElementById(panelId).style.display = 'none';
+}
+
+// 게임 저장/로드에 특성 시스템 추가
+saveGame() {
+    const data = {
+        p: this.player,
+        e: this.equipment,
+        i: this.inventory,
+        f: this.currentFloor,
+        c: this.pityCounter,
+        t: this.talents,
+        tp: this.talentPoints
+    };
+    localStorage.setItem('hackSlashGame_v17', JSON.stringify(data));
+}
+
+loadGame() {
+    const data = localStorage.getItem('hackSlashGame_v17');
+    if(data) {
+        try {
+            const saveData = JSON.parse(data);
+            Object.assign(this.player, saveData.p);
+            this.equipment = saveData.e;
+            this.inventory = saveData.i || [];
+            this.currentFloor = saveData.f;
+            this.pityCounter = saveData.c;
+            this.talents = saveData.t || {};
+            this.talentPoints = saveData.tp || 0;
+            this.updateStats();
+        } catch(e) {
+            console.error("Save Load Failed:", e);
+            localStorage.removeItem('hackSlashGame_v17');
+        }
+    }
+}
+
+} // Game 클래스 종료
+
+// 게임 시작
+window.onload = () => {
+    window.game = new Game();
+};
+</script>
+</body>
+</html>
+
+                
