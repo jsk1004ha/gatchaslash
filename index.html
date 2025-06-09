@@ -176,12 +176,30 @@
                 <h3>펫 관리 <button id="closePetButton" class="button" style="float:right; padding: 4px 12px;">닫기</button></h3>
                 <div id="petList" style="margin-top: 15px; height: 450px; overflow-y: auto;"></div>
             </div>
+
+            <div id="synthesisPanel" class="ui-panel" style="display:none; width: 700px; text-align: center;">
+                <h3>장비 합성 <button id="closeSynthesisButton" class="button" style="float:right; padding: 4px 12px;">닫기</button></h3>
+                <p>동일한 등급, 동일한 종류의 장비 3개를 합성하여 상위 등급의 장비를 얻을 수 있습니다.</p>
+                <div id="synthesisSlotsContainer" style="display: flex; justify-content: space-around; align-items: center; margin: 20px 0;">
+                    <div class="equipment-slot synthesis-slot" data-slot="0"></div>
+                    <div class="equipment-slot synthesis-slot" data-slot="1"></div>
+                    <div class="equipment-slot synthesis-slot" data-slot="2"></div>
+                    <div style="font-size: 30px;">→</div>
+                    <div class="equipment-slot" id="synthesisResultSlot">?</div>
+                </div>
+                <div id="synthesisInfo">
+                    <p>비용: <span id="synthesisCost">0</span> 골드</p>
+                    <p>성공 확률: <span id="synthesisChance">0</span>%</p>
+                </div>
+                <button id="synthesizeButton" class="button" disabled>합성</button>
+            </div>
             
             <div id="bottomUIPanel">
                 <button class="button" id="openGachaButton">갸챠</button>
                 <button class="button" id="openTalentButton">특성</button>
                 <button class="button" id="openInventoryButton">인벤토리</button>
                 <button class="button" id="openPetButton">펫 관리</button>
+                <button class="button" id="openSynthesisButton">장비 합성</button>
             </div>
         </div>
         
@@ -230,17 +248,17 @@ const WEAPON_DATA = {
     '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
     '검':    {t:'s', r:140, d:3, s:1.5, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
     '창':    {t:'h', r:160, d:2.0, s:0.5, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)'}},
-    '도끼':  {t:'m', r:130, d:2.8, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
-    '망치':  {t:'m', r:150, d:4.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
-    '활':    {t:'r', v:18,  d:3.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
+    '도끼':  {t:'m', r:130, d:8.5, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
+    '망치':  {t:'m', r:150, d:9.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
+    '활':    {t:'r', v:18,  d:6.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
     '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22'}},
     '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
     '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)'}},
     '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)'}},
-    '장궁':  {t:'r', v:22,  d:5, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
+    '장궁':  {t:'r', v:22,  d:10, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
     '마법총':{t:'g', r: 100, v:20,  d:0.3, s:10, p:0, life:900, e:{count:1,c:'#e74c3c'}},
-    '글레이브':{t:'s', r:180, d:1.1, s:1, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
-    '전투 낫':{t:'m', r:160, d:4, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
+    '글레이브':{t:'s', r:180, d:1.1, s:1.5, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
+    '전투 낫':{t:'m', r:200, d:6, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
 };
 
 const ARMOR_DATA = { '가죽 갑옷': {}, '사슬 갑옷': {}, '강철 갑옷': {}, '철판 흉갑': {}, '미스릴 갑옷': {}, '용비늘 갑옷': {}, '암흑 갑옷': {}, '수호신의 갑옷': {}, '광휘의 갑옷': {}, '타락한 심장의 갑주': {} };
@@ -670,8 +688,11 @@ class Game {
         this.pityCounter = 100; this.keys = {}; this.mouse = {x:0, y:0, isDown:false}; this.lastAttackTime = 0; this.skillEquipSlot = -1;
         this.activeSkillForUpgrade = null;
         this.activePet = null;
+        this.synthesisSlots = [null, null, null];
+        this.isSelectingForSynth = false;
+        this.synthSelectionSlot = -1;
         
-        ['inventoryPanel', 'gachaPanel', 'talentPanel', 'petPanel'].forEach(id => document.getElementById(id).style.display = 'none');
+        ['inventoryPanel', 'gachaPanel', 'talentPanel', 'petPanel', 'synthesisPanel'].forEach(id => document.getElementById(id).style.display = 'none');
         this.closeModal('gameOverScreen');
         this.resume();
         
@@ -693,6 +714,7 @@ class Game {
         this.equipment = {weapon: null, armor: null, skills: [null, null, null, null], pet: null}; 
         this.inventory = []; this.talents = {}; this.talentPoints = 0;
         this.pets = [];
+        this.openPanels = [];
     }
     setupEventListeners(){
         const kh = (e, v) => { this.keys[e.key.toLowerCase()] = v; if(v && e.key >= '1' && e.key <= '4') this.useSkill(parseInt(e.key) - 1); };
@@ -700,15 +722,21 @@ class Game {
         this.canvas.addEventListener('mousemove', e => { const r = this.canvas.getBoundingClientRect(); this.mouse.x = e.clientX - r.left; this.mouse.y = e.clientY - r.top; });
         this.canvas.addEventListener('mousedown', () => { this.mouse.isDown = true; }); this.canvas.addEventListener('mouseup', () => { this.mouse.isDown = false; });
         this.canvas.addEventListener('click', () => this.attack());
-        const buttons = { gacha1Button: () => this.performGacha(1), gacha10Button: () => this.performGacha(10), petGacha1Button: () => this.performPetGacha(1), closeInventoryButton: () => this.closeView('inventoryPanel'), openGachaButton: () => this.openView('gachaPanel'), closeGachaButton: () => this.closeView('gachaPanel'), openTalentButton: () => this.openView('talentPanel'), closeTalentButton: () => this.closeView('talentPanel'), openInventoryButton: () => this.openView('inventoryPanel'), openPetButton: () => this.openView('petPanel'), closePetButton: () => this.closeView('petPanel'), restartButton: () => this.init(true), nextFloorButton: () => this.nextFloor() };
+        const buttons = { gacha1Button: () => this.performGacha(1), gacha10Button: () => this.performGacha(10), petGacha1Button: () => this.performPetGacha(1), closeInventoryButton: () => this.closeView('inventoryPanel'), openGachaButton: () => this.openView('gachaPanel'), closeGachaButton: () => this.closeView('gachaPanel'), openTalentButton: () => this.openView('talentPanel'), closeTalentButton: () => this.closeView('talentPanel'), openInventoryButton: () => this.openView('inventoryPanel'), openPetButton: () => this.openView('petPanel'), closePetButton: () => this.closeView('petPanel'), restartButton: () => this.init(true), nextFloorButton: () => this.nextFloor(), openSynthesisButton: () => this.openView('synthesisPanel'), closeSynthesisButton: () => this.closeView('synthesisPanel'), synthesizeButton: () => this.synthesizeItems() };
         Object.entries(buttons).forEach(([id, func]) => document.getElementById(id).addEventListener('click', func));
         document.getElementById('inventoryFilter').addEventListener('click', e => { if(e.target.dataset.filter) this.filterInventory(e.target.dataset.filter); });
         document.getElementById('weaponArea').addEventListener('click', () => this.openView('inventoryPanel', 'weapon'));
         document.getElementById('armorArea').addEventListener('click', () => this.openView('inventoryPanel', 'armor'));
         document.getElementById('petArea').addEventListener('click', () => this.openView('petPanel'));
+        document.getElementById('synthesisSlotsContainer').addEventListener('click', e => {
+            if (e.target.closest('.synthesis-slot')) {
+                const slotIndex = parseInt(e.target.closest('.synthesis-slot').dataset.slot, 10);
+                this.selectSynthItem(slotIndex);
+            }
+        });
         setInterval(() => { if(!this.isGameOver) this.saveGame(); }, 5000);
     }
-    pause() { this.timeScale = 0; document.getElementById('pauseIndicator').style.display = 'block'; }
+    pause() { this.timeScale = 0; document.getElementById('pauseIndicator').innerText = "PAUSED"; document.getElementById('pauseIndicator').style.display = 'block'; }
     resume() { this.timeScale = 1; document.getElementById('pauseIndicator').style.display = 'none'; }
     gameLoop(){
         this.gameLoopRunning = true; if(this.isGameOver) { this.gameLoopRunning = false; return; }
@@ -840,14 +868,14 @@ class Game {
             if (this.talents['atk5'] && Math.random() < 0.1) { finalDamage *= 2; this.createFloatingText('결정타!', e.x, e.y - 20, '255,50,50', 24); }
         }
         
-        const fD = Math.floor(finalDamage); 
-        e.takeDamage(fD);
+        finalDamage = Math.max(1, Math.floor(finalDamage));
+        e.takeDamage(finalDamage);
         
-        this.createFloatingText(`-${fD}`, e.x, e.y, isCrit ? '255,100,0' : '255,200,50', isCrit ? 24 : 20);
+        this.createFloatingText(`-${finalDamage}`, e.x, e.y, isCrit ? '255,100,0' : '255,200,50', isCrit ? 24 : 20);
         
-        if (this.talents['spec1']) { this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(fD * 0.02)); }
+        if (this.talents['spec1']) { this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(finalDamage * 0.02)); }
         if (this.talents['spec2']) { const rD = Math.floor(d * 0.1); e.takeDamage(rD); }
-        if(weaponItem && weaponItem.special === '흡혈 10%'){ this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(fD * 0.1)); }
+        if(weaponItem && weaponItem.special === '흡혈 10%'){ this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(finalDamage * 0.1)); }
         if (this.talents['spec9'] && Math.random() < 0.05) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, 2000); e.applyStatusEffect(STATUS_EFFECTS.VULNERABLE, 2000); }
         
         if(e.hp <= 0) {
@@ -912,6 +940,9 @@ class Game {
         else { type = 'skill'; nP = Object.keys(SKILL_DATA); }
         const name = nP[Math.floor(Math.random() * nP.length)];
         const nI = { id: `${Date.now()}${Math.random()}`, name: name, type: type, rarity: r, level: 0, power: Math.floor(5 * RARITY_DATA[r].p) };
+        if(type === 'weapon' || type === 'armor') {
+            nI.star = 0;
+        }
         if(type === 'skill') {
             nI.level = 1;
             nI.exp = 0;
@@ -933,13 +964,23 @@ class Game {
     }
     
     updateStats(){
-        const w = this.equipment.weapon, a = this.equipment.armor; let bA = (this.player.baseAttackPower || 5) + (w ? w.power : 0);
-        let bH = 100 + (this.player.level - 1) * 20; let bD = a ? a.power : 0;
+        const w = this.equipment.weapon, a = this.equipment.armor;
+        let w_power = 0;
+        if (w) w_power = (w.power || 0) * (1 + (w.star || 0) * 0.2);
+        let a_power = 0;
+        if (a) a_power = (a.power || 0) * (1 + (a.star || 0) * 0.2);
+
+        let bA = (this.player.baseAttackPower || 5) + w_power;
+        let bH = 100 + (this.player.level - 1) * 20; 
+        let bD = a_power;
+
         if(this.talents['atk1']) bA *= 1.1; if(this.talents['atk6']) bA *= 1.25; if(this.talents['atk8']) bA *= 1.2;
         if(this.talents['def1']) bH *= 1.15; if(this.talents['def2']) bD *= 1.2; if(this.talents['def7']) { bH *= 1.3; bD *= 1.3; }
         if(this.talents['spec6']) { bA *= 1.15; bH *= 1.15; bD *= 1.15; }
         bA *= (1 + (this.player.tempAttackBonus || 0));
-        this.player.attackPower = Math.floor(bA); this.player.defense = Math.floor(bD); this.player.maxHp = Math.floor(bH);
+        this.player.attackPower = Math.floor(bA); 
+        this.player.defense = Math.floor(bD); 
+        this.player.maxHp = Math.floor(bH);
         
         let critRate = 0.05; if(this.talents['atk3']) critRate += 0.05; if(this.talents['atk8']) critRate += 0.1; this.player.critRate = critRate;
         let critDmg = 1.5; if(this.talents['atk2']) critDmg += 0.3; this.player.critDamage = critDmg;
@@ -1112,6 +1153,10 @@ class Game {
     unlockTalent(t) { if (!this.canUnlockTalent(t)) return; this.talentPoints -= t.cost; this.talents[t.id] = true; this.createNotification(`${t.name} 특성을 획득했습니다!`, 'success'); this.updateStats(); this.initTalentTree(); }
     createNotification(m, t = 'info') { const a = document.getElementById('notification-area'); const n = document.createElement('div'); n.className = 'notification'; n.textContent = m; const c = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' }; n.style.borderColor = c[t] || c.info; n.style.backgroundColor = (c[t] || c.info).replace(')', ', 0.9)').replace('rgb', 'rgba'); a.appendChild(n); setTimeout(() => { if(n.parentNode) n.parentNode.removeChild(n); }, 4000); }
     equipItem(i) {
+        if (this.isSelectingForSynth) {
+            this.addItemToSynthSlot(i);
+            return;
+        }
         if (i.type === 'pet') {
              this.equipPet(i);
              return;
@@ -1128,10 +1173,10 @@ class Game {
     createFloatingText(t, x, y, c = '255,255,255', s = 20) { this.floatingTexts.push({ text:t, x, y, c, s, alpha: 1, life: 2000 }); }
     openModal(id) { document.getElementById('modal-backdrop').style.display = 'flex'; document.getElementById(id).style.display = 'block'; }
     closeModal(id) { document.getElementById('modal-backdrop').style.display = 'none'; document.getElementById(id).style.display = 'none'; }
-    gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); localStorage.removeItem('hackSlashGame_v25'); }
+    gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); this.pause(); localStorage.removeItem('hackSlashGame_v25'); }
     spawnWave() { const eC = Math.min(3 + Math.floor(this.currentFloor * 1.5), 15); const elC = Math.min(0.1 + (this.currentFloor * 0.05), 0.4); for(let i = 0; i < eC; i++) { this.enemies.push(new Enemy(this, Math.random() < elC)); } }
-    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(1 + this.currentFloor / 5); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 10; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); }
-    nextFloor() { this.currentFloor++; this.currentWave = 1; this.floorCompleted = false; this.closeModal('floorInfo'); this.spawnWave(); }
+    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(1 + this.currentFloor / 5); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 10; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); this.pause(); }
+    nextFloor() { this.currentFloor++; this.currentWave = 1; this.floorCompleted = false; this.closeModal('floorInfo'); this.spawnWave(); this.resume(); }
     updateInventoryDisplay() { const list = document.getElementById('inventoryList'); list.innerHTML = ''; const filtered = this.inventory.filter(i => this.inventoryFilter === 'all' || i.type === this.inventoryFilter); filtered.sort((a, b) => Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity)); filtered.forEach(item => { const div = document.createElement('div'); div.className = `item ${item.rarity}`; const rC = RARITY_DATA[item.rarity].c; div.style.borderLeftColor = rC; div.onclick = () => this.equipItem(item); if(Object.values(this.equipment).flat().some(e => e?.id === item.id)) div.classList.add('equipped'); let cost = Math.floor(150 * Math.pow(2.3, item.level)); if (this.talents['greed5']) cost = Math.floor(cost * 0.8); const iD = document.createElement('div');
             if(item.type === 'skill'){
                 const expPercent = (item.exp / item.expToNext) * 100;
@@ -1139,20 +1184,71 @@ class Game {
                 iD.innerHTML = `<div style="width: 100%;"><strong style="color:${rC}">(${item.rarity}) ${item.name} (Lv.${item.level})</strong><br><small>경험치: ${item.exp} / ${item.expToNext}</small>${expBar}</div>`;
                 div.appendChild(iD);
             } else {
-                iD.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><div><strong style="color:${rC}">(${item.rarity}) ${item.name} (+${item.level})</strong><br><small>능력치: ${item.power}${item.special?' | '+item.special:''}</small></div></div>`;
+                let starDisplay = '';
+                if (item.star > 0) {
+                    starDisplay = ' ' + '★'.repeat(item.star);
+                }
+                iD.innerHTML = `<div style="display:flex;align-items:center;gap:10px; flex-grow: 1;"><div><strong style="color:${rC}">(${item.rarity}) ${item.name} (+${item.level})${starDisplay}</strong><br><small>능력치: ${item.power}${item.special?' | '+item.special:''}</small></div></div>`;
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.gap = '5px';
+                
                 const eB = document.createElement('button');
                 eB.className = 'button';
                 eB.textContent = `강화 (${cost.toLocaleString()}G)`;
                 eB.disabled = item.level >= 10 || this.player.gold < cost;
                 eB.onclick = (e) => { e.stopPropagation(); this.enhanceItem(item.id); };
+
+                const pB = document.createElement('button');
+                pB.className = 'button';
+                pB.style.backgroundColor = '#9b59b6';
+                pB.textContent = `초월`;
+                const duplicate = this.inventory.find(invItem => invItem.id !== item.id && invItem.name === item.name && invItem.rarity === item.rarity);
+                pB.disabled = !duplicate || (item.star || 0) >= 5;
+                pB.onclick = (e) => { e.stopPropagation(); this.promoteItem(item.id); };
+
                 div.appendChild(iD);
-                div.appendChild(eB);
+                btnContainer.appendChild(eB);
+                btnContainer.appendChild(pB);
+                div.appendChild(btnContainer);
             }
             list.appendChild(div); }); }
-    openView(panelId, filter) { document.getElementById(panelId).style.display = 'block'; this.pause(); if(panelId === 'inventoryPanel') this.filterInventory(filter || 'all'); else if(panelId === 'talentPanel') this.initTalentTree(); else if (panelId === 'petPanel') this.updatePetPanelDisplay(); }
-    closeView(panelId) { document.getElementById(panelId).style.display = 'none'; this.resume(); if(panelId === 'inventoryPanel') { this.skillEquipSlot = -1; } }
+    openView(panelId, filter) {
+        if (!this.openPanels.includes(panelId)) this.openPanels.push(panelId);
+        document.getElementById(panelId).style.display = 'block'; 
+        this.pause(); 
+        if(panelId === 'inventoryPanel') {
+             if (!this.isSelectingForSynth) {
+                this.filterInventory(filter || 'all');
+            } else {
+                this.updateInventoryDisplay();
+            }
+        } else if(panelId === 'talentPanel') {
+            this.initTalentTree(); 
+        } else if (panelId === 'petPanel') { 
+            this.updatePetPanelDisplay(); 
+        } else if (panelId === 'synthesisPanel') {
+            this.synthesisSlots = [null, null, null];
+            this.updateSynthesisPanel();
+        }
+    }
+    closeView(panelId) { 
+        document.getElementById(panelId).style.display = 'none'; 
+        this.openPanels = this.openPanels.filter(p => p !== panelId);
+
+        if (this.openPanels.length === 0) {
+            this.resume(); 
+        }
+        
+        if(panelId === 'inventoryPanel') { 
+            this.skillEquipSlot = -1;
+            if (this.isSelectingForSynth) {
+                this.isSelectingForSynth = false;
+            }
+        } 
+    }
     saveGame() { const data = { p: this.player, e: this.equipment, i: this.inventory, f: this.currentFloor, c: this.pityCounter, t: this.talents, tp: this.talentPoints, pets: this.pets }; localStorage.setItem('hackSlashGame_v25', JSON.stringify(data)); }
-    loadGame() { const data = localStorage.getItem('hackSlashGame_v25'); if(data) { try { const s = JSON.parse(data); if (s.p) Object.assign(this.player, s.p); if (s.e) { this.equipment = s.e; if(this.equipment.pet) { this.activePet = new Pet(this, this.equipment.pet); } } if (s.i) this.inventory = s.i; if (s.t) this.talents = s.t; this.currentFloor = s.f || 1; this.pityCounter = s.c || 100; this.talentPoints = s.tp || 0; this.pets = s.pets || []; } catch(e) { console.error("Save Load Failed, resetting:", e); localStorage.removeItem('hackSlashGame_v25'); this.resetPlayerState(); } } }
+    loadGame() { const data = localStorage.getItem('hackSlashGame_v25'); if(data) { try { const s = JSON.parse(data); if (s.p) Object.assign(this.player, s.p); if (s.e) { this.equipment = s.e; Object.values(this.equipment).forEach(item => { if (item && (item.type === 'weapon' || item.type === 'armor') && item.star === undefined) { item.star = 0; } }); if(this.equipment.pet) { this.activePet = new Pet(this, this.equipment.pet); } } if (s.i) { this.inventory = s.i; this.inventory.forEach(item => { if ((item.type === 'weapon' || item.type === 'armor') && item.star === undefined) { item.star = 0; } }); } if (s.t) this.talents = s.t; this.currentFloor = s.f || 1; this.pityCounter = s.c || 100; this.talentPoints = s.tp || 0; this.pets = s.pets || []; } catch(e) { console.error("Save Load Failed, resetting:", e); localStorage.removeItem('hackSlashGame_v25'); this.resetPlayerState(); } } }
     findClosestEnemy(x, y) {
         let closest = null;
         let minDistance = Infinity;
@@ -1280,6 +1376,155 @@ class Game {
         }
 
         return speed;
+    }
+
+    selectSynthItem(slotIndex) {
+        if (this.synthesisSlots[slotIndex]) {
+            this.synthesisSlots[slotIndex] = null;
+            this.updateSynthesisPanel();
+        } else {
+            this.synthSelectionSlot = slotIndex;
+            this.isSelectingForSynth = true;
+            this.openView('inventoryPanel');
+            this.createNotification('합성에 사용할 아이템을 선택하세요.', 'info');
+        }
+    }
+
+    addItemToSynthSlot(item) {
+        if (item.type !== 'weapon' && item.type !== 'armor') {
+            this.createNotification('무기 또는 방어구만 합성할 수 있습니다.', 'error');
+            this.isSelectingForSynth = false; this.closeView('inventoryPanel');
+            return;
+        }
+        if (this.synthesisSlots.some(i => i && i.id === item.id)) {
+            this.createNotification('이미 등록된 아이템입니다.', 'error');
+            this.isSelectingForSynth = false; this.closeView('inventoryPanel');
+            return;
+        }
+
+        this.synthesisSlots[this.synthSelectionSlot] = item;
+        this.isSelectingForSynth = false;
+        this.synthSelectionSlot = -1;
+        this.closeView('inventoryPanel');
+        this.updateSynthesisPanel();
+    }
+
+    updateSynthesisPanel() {
+        const slots = document.querySelectorAll('.synthesis-slot');
+        let cost = 0;
+        let chance = 0;
+        let canSynthesize = false;
+
+        slots.forEach((slot, index) => {
+            const item = this.synthesisSlots[index];
+            if (item) {
+                const rD = RARITY_DATA[item.rarity];
+                slot.innerHTML = `<div style="font-size: 11px; margin-top: 2px; pointer-events:none;"><span style="color:${rD.c}">(${item.rarity})</span> ${item.name}</div>`;
+                slot.style.borderColor = rD.c;
+                slot.classList.add('filled');
+            } else {
+                slot.innerHTML = '';
+                slot.style.borderColor = '#666';
+                slot.classList.remove('filled');
+            }
+        });
+
+        const items = this.synthesisSlots.filter(i => i !== null);
+        if (items.length === 3) {
+            const firstItem = items[0];
+            const isSameType = items.every(i => i.type === firstItem.type);
+            const isSameRarity = items.every(i => i.rarity === firstItem.rarity);
+
+            if (isSameType && isSameRarity) {
+                const rarityIndex = Object.keys(RARITY_DATA).indexOf(firstItem.rarity);
+                if (rarityIndex < Object.keys(RARITY_DATA).length - 1) {
+                    cost = Math.floor(1000 * Math.pow(3, rarityIndex));
+                    chance = Math.max(10, 90 - rarityIndex * 8);
+                    canSynthesize = true;
+                } else {
+                    this.createNotification('최고 등급 아이템은 합성할 수 없습니다.', 'warning');
+                }
+            } else {
+                this.createNotification('동일한 종류와 등급의 아이템 3개를 사용해야 합니다.', 'warning');
+            }
+        }
+
+        document.getElementById('synthesisCost').textContent = cost.toLocaleString();
+        document.getElementById('synthesisChance').textContent = chance;
+        document.getElementById('synthesizeButton').disabled = !canSynthesize || this.player.gold < cost;
+    }
+
+    synthesizeItems() {
+        const items = this.synthesisSlots.filter(i => i !== null);
+        if (items.length !== 3) return;
+
+        const firstItem = items[0];
+        const rarityIndex = Object.keys(RARITY_DATA).indexOf(firstItem.rarity);
+        const cost = Math.floor(1000 * Math.pow(3, rarityIndex));
+        const chance = Math.max(10, 90 - rarityIndex * 8) / 100;
+
+        if (this.player.gold < cost) {
+            this.createNotification('골드가 부족합니다.', 'error');
+            return;
+        }
+
+        this.player.gold -= cost;
+        this.inventory = this.inventory.filter(invItem => !items.some(slotItem => slotItem.id === invItem.id));
+
+        if (Math.random() < chance) {
+            const rarities = Object.keys(RARITY_DATA);
+            const nextRarity = rarities[rarityIndex + 1];
+            
+            let newItemPool = [];
+            if (firstItem.type === 'weapon') newItemPool = Object.keys(WEAPON_DATA).filter(n => n !== '맨손');
+            else if (firstItem.type === 'armor') newItemPool = Object.keys(ARMOR_DATA);
+            
+            const name = newItemPool[Math.floor(Math.random() * newItemPool.length)];
+            const newItem = { id: `${Date.now()}${Math.random()}`, name: name, type: firstItem.type, rarity: nextRarity, level: 0, star: 0, power: Math.floor(5 * RARITY_DATA[nextRarity].p) };
+            
+            this.inventory.push(newItem);
+            this.createNotification(`합성 성공! (${nextRarity}) ${newItem.name} 획득!`, 'success');
+
+        } else {
+            this.createNotification('합성에 실패했습니다...', 'error');
+        }
+        
+        this.synthesisSlots = [null, null, null];
+        this.updateSynthesisPanel();
+        this.updateUI();
+        this.updateInventoryDisplay();
+    }
+
+    promoteItem(targetId) {
+        const targetItem = this.inventory.find(i => i.id === targetId);
+        if (!targetItem) return;
+
+        const materialItem = this.inventory.find(i => i.id !== targetId && i.name === targetItem.name && i.rarity === targetItem.rarity);
+        if (!materialItem) {
+            this.createNotification('초월에 필요한 동일한 아이템이 없습니다.', 'error');
+            return;
+        }
+        
+        const star = targetItem.star || 0;
+        if (star >= 5) {
+            this.createNotification('최대 성급에 도달했습니다.', 'error');
+            return;
+        }
+
+        const cost = Math.floor(2000 * Math.pow(4, star) * (Object.keys(RARITY_DATA).indexOf(targetItem.rarity) + 1));
+        if (this.player.gold < cost) {
+            this.createNotification(`골드가 부족합니다. (필요: ${cost.toLocaleString()}G)`, 'error');
+            return;
+        }
+
+        this.player.gold -= cost;
+        targetItem.star = star + 1;
+        this.inventory = this.inventory.filter(i => i.id !== materialItem.id);
+
+        this.createNotification(`${targetItem.name} 초월 성공! (${'★'.repeat(targetItem.star)})`, 'success');
+        
+        this.updateStats();
+        this.updateInventoryDisplay();
     }
 }
 
