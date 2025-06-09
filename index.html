@@ -230,17 +230,17 @@ const WEAPON_DATA = {
     '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
     '검':    {t:'s', r:140, d:3, s:1.5, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
     '창':    {t:'h', r:160, d:2.0, s:0.5, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)'}},
-    '도끼':  {t:'m', r:130, d:2.8, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
-    '망치':  {t:'m', r:150, d:4.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
-    '활':    {t:'r', v:18,  d:3.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
+    '도끼':  {t:'m', r:130, d:8.5, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
+    '망치':  {t:'m', r:150, d:9.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
+    '활':    {t:'r', v:18,  d:6.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
     '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22'}},
     '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
     '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)'}},
     '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)'}},
-    '장궁':  {t:'r', v:22,  d:5, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
+    '장궁':  {t:'r', v:22,  d:10, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
     '마법총':{t:'g', r: 100, v:20,  d:0.3, s:10, p:0, life:900, e:{count:1,c:'#e74c3c'}},
-    '글레이브':{t:'s', r:180, d:1.1, s:1, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
-    '전투 낫':{t:'m', r:160, d:4, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
+    '글레이브':{t:'s', r:180, d:1.1, s:1.5, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
+    '전투 낫':{t:'m', r:200, d:6, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
 };
 
 const ARMOR_DATA = { '가죽 갑옷': {}, '사슬 갑옷': {}, '강철 갑옷': {}, '철판 흉갑': {}, '미스릴 갑옷': {}, '용비늘 갑옷': {}, '암흑 갑옷': {}, '수호신의 갑옷': {}, '광휘의 갑옷': {}, '타락한 심장의 갑주': {} };
@@ -1123,7 +1123,7 @@ class Game {
     closeModal(id) { document.getElementById('modal-backdrop').style.display = 'none'; document.getElementById(id).style.display = 'none'; }
     gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); localStorage.removeItem('hackSlashGame_v25'); }
     spawnWave() { const eC = Math.min(3 + Math.floor(this.currentFloor * 1.5), 15); const elC = Math.min(0.1 + (this.currentFloor * 0.05), 0.4); for(let i = 0; i < eC; i++) { this.enemies.push(new Enemy(this, Math.random() < elC)); } }
-    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(1 + this.currentFloor / 5); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 5; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); }
+    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(1 + this.currentFloor / 5); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 10; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); }
     nextFloor() { this.currentFloor++; this.currentWave = 1; this.floorCompleted = false; this.closeModal('floorInfo'); this.spawnWave(); }
     updateInventoryDisplay() { const list = document.getElementById('inventoryList'); list.innerHTML = ''; const filtered = this.inventory.filter(i => this.inventoryFilter === 'all' || i.type === this.inventoryFilter); filtered.sort((a, b) => Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity)); filtered.forEach(item => { const div = document.createElement('div'); div.className = `item ${item.rarity}`; const rC = RARITY_DATA[item.rarity].c; div.style.borderLeftColor = rC; div.onclick = () => this.equipItem(item); if(Object.values(this.equipment).flat().some(e => e?.id === item.id)) div.classList.add('equipped'); let cost = Math.floor(150 * Math.pow(2.3, item.level)); if (this.talents['greed5']) cost = Math.floor(cost * 0.8); const iD = document.createElement('div');
             if(item.type === 'skill'){
