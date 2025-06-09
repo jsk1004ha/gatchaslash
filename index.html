@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>핵앤슬래시 갸챠 게임 v1.0</title>
+    <title>핵앤슬래시 갸챠 게임 v1.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -78,11 +78,18 @@
         .talent-node-cost { font-size: 9px; color: #f1c40f; }
         @keyframes talentGlow { 0%, 100% { box-shadow: 0 0 8px var(--warn-color); } 50% { box-shadow: 0 0 25px var(--warn-color); } }
         .floor-display { font-size: 20px; font-weight: 700; color: var(--warn-color); text-shadow: 0 0 10px var(--warn-color); }
+        .status-effect { position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%; font-size: 8px; display: flex; align-items: center; justify-content: center; }
+        .poison { background: #8e44ad; }
+        .burn { background: #e74c3c; }
+        .freeze { background: #3498db; }
+        .stun { background: #f39c12; }
+        #pauseIndicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: #f1c40f; text-shadow: 0 0 20px #f1c40f; z-index: 15; display: none; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
+        <div id="pauseIndicator"></div>
         <div id="ui">
             <div id="statsPanel" class="ui-panel">
                 <h3>플레이어 정보</h3>
@@ -94,6 +101,7 @@
                 <div class="stat-row"><span>공격력:</span><span class="stat-value" id="playerAttack">5</span></div>
                 <div class="stat-row"><span>공격속도:</span><span class="stat-value" id="playerAttackSpeed">1.0</span></div>
                 <div class="stat-row"><span>방어력:</span><span class="stat-value" id="playerDefense">0</span></div>
+                <div class="stat-row"><span>치명타 확률:</span><span class="stat-value" id="playerCritRate">5%</span></div>
                 <div class="stat-row"><span>골드:</span><span class="stat-value" id="playerGold">1000</span></div>
                 <div class="stat-row"><span>토큰:</span><span class="stat-value" id="gachaTokens">100</span></div>
                 <div class="stat-row"><span>특성 포인트:</span><span class="stat-value" id="talentPoints">0</span></div>
@@ -182,7 +190,7 @@
 
 <script>
 // ==================================
-// 데이터 정의 (v23.0)
+// 데이터 정의 (v25.0)
 // ==================================
 const RARITY_DATA = {
     N:   {r: 0.4599999, c:'#95a5a6', p:1.0}, E:   {r: 0.2500000, c:'#2ecc71', p:1.8}, 
@@ -199,7 +207,6 @@ const SSR_WEAPON_SPECIALS = [
     '공격 시 공속 증가', '골드 획득량 20% 증가', '빙결 확률 5%', '화상 확률 5%', '스킬 쿨감 1초'
 ];
 
-// [밸런스 조정] 비관통 무기 추가 버프
 const WEAPON_DATA = {
     '맨손':  {t:'p', r:50,  d:0.8, s:2.5, p:0, e:{type:'rect',w:50,h:20,c:'rgba(255,255,255,0.4)'}},
     '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
@@ -209,7 +216,7 @@ const WEAPON_DATA = {
     '망치':  {t:'m', r:150, d:3.6, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
     '활':    {t:'r', v:18,  d:2.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
     '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22'}},
-    '지팡이':{t:'g', v:10,  d:1.2, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
+    '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
     '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)'}},
     '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)'}},
     '장궁':  {t:'r', v:22,  d:3.5, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
@@ -226,20 +233,19 @@ const SKILL_DATA = {
     '칼날 폭풍': {type:'aura', r:180, d:0.3, dur:5, tick:0.25, cd:12, c:'rgba(200,200,200,0.5)', name:'칼날 폭풍'},
     '치유의 빛': {type:'heal', a:0.3, cd:15, c:'rgba(100,255,100,0.8)', name:'치유의 빛'},
     '빙결': {type:'aoe', r:100, d:0.5, cd:8, c:'rgba(100,200,255,0.6)', frz:2, name:'빙결'},
-    '독 안개': {type:'aura', r:150, d:0.2, dur:8, tick:0.5, cd:10, c:'rgba(100,255,100,0.4)', name:'독 안개'},
-    '보호막': {type:'buff', dur:5, cd:20, val:0.3, name:'보호막'},
-    '광폭화': {type:'buff', dur:8, cd:18, val:0.5, name:'광폭화'},
+    '독 안개': {type:'aura_poison', r:150, d:0.2, dur:8, tick:0.5, cd:10, c:'rgba(100,255,100,0.4)', name:'독 안개'},
+    '보호막': {type:'shield', dur:5, cd:20, val:0.3, name:'보호막'},
+    '광폭화': {type:'rage', dur:8, cd:18, val:0.5, name:'광폭화'},
     '흡혈 저주': {type:'aoe_dot', r:100, d:0.2, dur:6, tick:0.5, cd:12, c:'rgba(192,57,43,0.6)', name:'흡혈 저주'},
-    '지진': {type:'aoe_slow', r:200, d:1.5, dur:4, cd:15, val:0.5, c:'rgba(139,69,19,0.6)', name:'지진'},
-    '눈보라': {type:'aura_freeze', r:200, d:0.1, dur:6, tick:1, cd:20, frz:0.5, c:'rgba(224,255,255,0.5)', name:'눈보라'},
-    '암살': {type:'single_target', d:5, cd:8, name:'암살'},
-    '신성 폭발': {type:'aoe_heal', r:150, d:1.0, a:0.2, cd:18, c:'rgba(255,215,0,0.6)', name:'신성 폭발'},
-    '시간 왜곡': {type:'buff_global', dur:5, cd:30, val:0.5, name:'시간 왜곡'},
-    '피의 갈증': {type:'aura_lifesteal', r:180, dur:7, tick:0.2, d:0.25, val:0.1, cd:16, c:'rgba(255,0,0,0.4)', name:'피의 갈증'},
-    '천상의 방패': {type:'invincible', dur:3, cd:40, name:'천상의 방패'}
+    '지진': {type:'earthquake', r:200, d:1.5, dur:4, cd:15, val:0.5, c:'rgba(139,69,19,0.6)', name:'지진'},
+    '눈보라': {type:'blizzard', r:200, d:0.1, dur:6, tick:1, cd:20, frz:0.5, c:'rgba(224,255,255,0.5)', name:'눈보라'},
+    '암살': {type:'assassinate', d:5, cd:8, name:'암살'},
+    '신성 폭발': {type:'holy_blast', r:150, d:1.0, a:0.2, cd:18, c:'rgba(255,215,0,0.6)', name:'신성 폭발'},
+    '시간 왜곡': {type:'time_warp', dur:5, cd:30, val:0.5, name:'시간 왜곡'},
+    '피의 갈증': {type:'blood_thirst', r:180, dur:7, tick:0.2, d:0.25, val:0.1, cd:16, c:'rgba(255,0,0,0.4)', name:'피의 갈증'},
+    '천상의 방패': {type:'divine_shield', dur:3, cd:40, name:'천상의 방패'}
 };
 
-// [특성 확장] 각 계열당 8개로 확장
 const TALENT_DATA = {
     '공격': { name: '공격', talents: [
         {id:'atk1', name:'기초 훈련', desc:'공격력 +10%', cost:1},
@@ -250,6 +256,8 @@ const TALENT_DATA = {
         {id:'atk6', name:'파괴자', desc:'공격력 +25%', cost:4, prereq:'atk5'},
         {id:'atk7', name:'학살자', desc:'적 처치 시 5초간 공격력 +20%', cost:5, prereq:'atk6'},
         {id:'atk8', name:'전쟁의 신', desc:'공격력 +20%, 치명타 확률 +10%', cost:6, prereq:'atk7'},
+        {id:'atk9', name:'광란', desc:'적 처치 시 5초간 공격속도 +10%', cost: 7, prereq: 'atk8'},
+        {id:'atk10', name:'필멸의 일격', desc:'공격 시 10% 확률로 체력 15% 이하의 일반 몬스터 즉사', cost: 8, prereq: 'atk9'}
     ]},
     '방어': { name: '방어', talents: [
         {id:'def1', name:'기초 훈련', desc:'최대 체력 +15%', cost:1},
@@ -260,6 +268,8 @@ const TALENT_DATA = {
         {id:'def6', name:'회피', desc:'받는 피해 10% 확률로 무시', cost:4, prereq:'def5'},
         {id:'def7', name:'수호자', desc:'최대 체력 +30%, 방어력 +30%', cost:5, prereq:'def6'},
         {id:'def8', name:'불멸자', desc:'받는 피해 15% 감소, 초당 체력 1% 재생', cost:6, prereq:'def7'},
+        {id:'def9', name:'응급 처치', desc:'체력 30% 이하일 때 60초마다 최대 체력의 20% 회복', cost: 7, prereq: 'def8'},
+        {id:'def10', name:'신의 가호', desc:'30초마다 모든 피해를 1회 막는 보호막 획득', cost: 8, prereq: 'def9'}
     ]},
     '유틸': { name: '유틸', talents: [
         {id:'util1', name:'신속', desc:'공격 속도 +10%', cost:1},
@@ -270,6 +280,8 @@ const TALENT_DATA = {
         {id:'util6', name:'시간 가속', desc:'공격 속도 +15%, 쿨다운 -15%', cost:4, prereq:'util5'},
         {id:'util7', name:'마력 폭주', desc:'스킬 사용 시 5% 확률로 쿨타임 초기화', cost:5, prereq:'util6'},
         {id:'util8', name:'현자', desc:'모든 스킬 레벨 +1 효과', cost:6, prereq:'util7'},
+        {id:'util9', name:'마나 순환', desc:'적 처치 시 10% 확률로 모든 스킬 쿨다운 1초 감소', cost: 7, prereq: 'util8'},
+        {id:'util10', name:'초월자', desc:'모든 스킬 쿨다운 추가 15% 감소, 버프 지속시간 25% 증가', cost: 8, prereq: 'util9'}
     ]},
     '탐욕': { name: '탐욕', talents: [
         {id:'greed1', name:'협상가', desc:'골드 획득량 +20%', cost:1},
@@ -280,6 +292,8 @@ const TALENT_DATA = {
         {id:'greed6', name:'약탈', desc:'공격 시 1% 확률로 적에게서 골드 훔침', cost:4, prereq:'greed5'},
         {id:'greed7', name:'탐욕의 왕', desc:'골드/토큰 획득량 +30%', cost:5, prereq:'greed6'},
         {id:'greed8', name:'보물왕', desc:'층 클리어 시 추가 보상 획득', cost:6, prereq:'greed7'},
+        {id:'greed9', name:'장비 복제', desc:'갸챠 시 5% 확률로 동일 아이템 추가 획득', cost: 7, prereq: 'greed8'},
+        {id:'greed10', name:'황금의 신', desc:'골드 획득량 +50%, 적이 갸챠 토큰을 직접 드롭할 확률 2%', cost: 8, prereq: 'greed9'}
     ]},
     '특수': { name: '특수', talents: [
         {id:'spec1', name:'흡혈', desc:'주는 피해의 2%만큼 체력 회복', cost:2},
@@ -290,26 +304,34 @@ const TALENT_DATA = {
         {id:'spec6', name:'초월', desc:'모든 스탯 +15%', cost:5, prereq:'spec5'},
         {id:'spec7', name:'지배자', desc:'엘리트/보스에게 주는 피해 +25%', cost:5, prereq:'spec6'},
         {id:'spec8', name:'파멸', desc:'모든 피해량 20% 증가, 받는 피해 10% 증가', cost:6, prereq:'spec7'},
+        {id:'spec9', name:'절대 영점', desc:'공격 시 5% 확률로 2초간 적을 빙결시키고 받는 피해 20% 증가', cost: 7, prereq: 'spec8'},
+        {id:'spec10', name:'운명 조작', desc:'모든 확률 기반 효과 발동 확률 +5%', cost: 8, prereq: 'spec9'}
     ]}
 };
+
+const STATUS_EFFECTS = { POISON: 'poison', BURN: 'burn', FREEZE: 'freeze', STUN: 'stun', VULNERABLE: 'vulnerable' };
 
 class Particle {
     constructor(x, y, color, size, speed, life) { this.x = x; this.y = y; this.color = color; this.size = size; this.life = life; this.maxLife = life; this.vx = speed * (Math.random() - 0.5) * 2; this.vy = speed * (Math.random() - 0.5) * 2; }
     update(dt) { this.life -= dt; this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000); this.vy += 50 * (dt / 1000); }
     draw(ctx) { ctx.save(); ctx.globalAlpha = this.life / this.maxLife; ctx.fillStyle = this.color; ctx.shadowBlur = 10; ctx.shadowColor = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
 }
+
 class Enemy {
-    constructor(game, isElite) { this.game = game; this.id = Math.random(); this.isElite = isElite; this.x = game.canvas.width + 50 + Math.random() * 200 * Math.max(1, Math.round(game.currentFloor ** 1/2)); this.size = isElite ? 30 : 18; this.y = game.groundY - this.size; const floorMultiplier = Math.pow(1.3, game.currentFloor - 1); this.maxHp = Math.floor((30 + game.currentFloor * 20) * (isElite ? 3.0 : 1) * floorMultiplier); this.hp = this.maxHp; this.damage = Math.floor((12 + game.currentFloor * 2.5) * (isElite ? 2.2 : 1) * floorMultiplier); this.speed = (70 + game.currentFloor * 15) * (isElite ? 0.9 : 1) * Math.min(floorMultiplier * 0.8, 3); this.lastAttackTime = 0; this.isFrozen = false; this.freezeTimer = 0; }
-    update(dt, player, dealDamageCallback) { if (this.isFrozen) { this.freezeTimer -= dt; if (this.freezeTimer <= 0) this.isFrozen = false; return; } const dx = player.x - this.x; if (Math.abs(dx) > this.size) { this.x += Math.sign(dx) * this.speed * (dt / 1000); } if (Math.abs(dx) < this.size + player.size + 10 && Date.now() - this.lastAttackTime > 1800) { this.lastAttackTime = Date.now(); dealDamageCallback(Math.floor(this.damage)); } }
-    draw(ctx) { ctx.save(); if (this.isElite) { ctx.shadowBlur = 15; ctx.shadowColor = '#e74c3c'; } ctx.fillStyle = this.isElite ? '#e74c3c' : '#c0392b'; if (this.isFrozen) ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); const bw = 50, bx = this.x - bw / 2, by = this.y - this.size - 15; ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, 6); ctx.fillStyle = this.hp > this.maxHp * 0.3 ? '#2ecc71' : '#e74c3c'; ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), 6); if (this.isElite) { ctx.fillStyle = '#ffd700'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', this.x, this.y - this.size - 25); } ctx.restore(); }
+    constructor(game, isElite) { this.game = game; this.id = Math.random(); this.isElite = isElite; this.x = game.canvas.width + 50 + Math.random() * 200; this.size = isElite ? 30 : 18; this.y = game.groundY - this.size; const floorMultiplier = Math.pow(1.3, game.currentFloor - 1); this.maxHp = Math.floor((30 + game.currentFloor * 20) * (isElite ? 3.0 : 1) * floorMultiplier); this.hp = this.maxHp; this.damage = Math.floor((12 + game.currentFloor * 2) * (isElite ? 2.2 : 1) * floorMultiplier); this.speed = (70 + game.currentFloor * 15) * (isElite ? 0.9 : 1) * Math.min(floorMultiplier * 0.8, 3); this.lastAttackTime = 0; this.statusEffects = new Map(); this.isFrozen = false; this.isStunned = false; }
+    update(dt, player, dealDamageCallback) { this.updateStatusEffects(dt); if (this.isFrozen || this.isStunned) return; const dx = player.x - this.x; if (Math.abs(dx) > this.size) { this.x += Math.sign(dx) * this.speed * (dt / 1000); } if (Math.abs(dx) < this.size + player.size + 10 && Date.now() - this.lastAttackTime > 1800) { this.lastAttackTime = Date.now(); dealDamageCallback(Math.floor(this.damage)); } }
+    updateStatusEffects(dt) { for (let [effect, data] of this.statusEffects) { data.duration -= dt; if (data.tick) { data.tick -= dt; if (data.tick <= 0) { switch(effect) { case STATUS_EFFECTS.POISON: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.02), null, true)); this.game.createFloatingText('독!', this.x, this.y - 20, '138,43,226', 16); break; case STATUS_EFFECTS.BURN: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.03), null, true)); this.game.createFloatingText('화상!', this.x, this.y - 20, '231,76,60', 16); break; } data.tick = data.tickInterval; } } if (data.duration <= 0) { this.statusEffects.delete(effect); if (effect === STATUS_EFFECTS.FREEZE) this.isFrozen = false; if (effect === STATUS_EFFECTS.STUN) this.isStunned = false; } } }
+    applyStatusEffect(effect, duration, tickInterval = 1000) { this.statusEffects.set(effect, { duration, tick: tickInterval, tickInterval }); if (effect === STATUS_EFFECTS.FREEZE) this.isFrozen = true; if (effect === STATUS_EFFECTS.STUN) this.isStunned = true; }
+    draw(ctx) { ctx.save(); if (this.isElite) { ctx.shadowBlur = 15; ctx.shadowColor = '#e74c3c'; } if (this.isFrozen) ctx.fillStyle = '#3498db'; else if (this.isStunned) ctx.fillStyle = '#f39c12'; else if (this.statusEffects.has(STATUS_EFFECTS.POISON)) ctx.fillStyle = '#8e44ad'; else if (this.statusEffects.has(STATUS_EFFECTS.BURN)) ctx.fillStyle = '#e67e22'; else ctx.fillStyle = this.isElite ? '#e74c3c' : '#c0392b'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); const bw = 50, bx = this.x - bw / 2, by = this.y - this.size - 15; ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, 6); ctx.fillStyle = this.hp > this.maxHp * 0.3 ? '#2ecc71' : '#e74c3c'; ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), 6); if (this.isElite) { ctx.fillStyle = '#ffd700'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', this.x, this.y - this.size - 25); } ctx.restore(); }
     takeDamage(d) { this.hp -= d; }
-    freeze(dur) { this.isFrozen = true; this.freezeTimer = dur * 1000; }
 }
+
 class BaseEffect {
     constructor(g, dur){this.game = g; this.life = dur; this.maxLife = dur; this.isDone = false;}
     update(dt){this.life -= dt; if(this.life <= 0) this.isDone = true;}
     draw(ctx){}
 }
+
 class MeleeEffect extends BaseEffect {
     constructor(g, w_item) {
         super(g, 200);
@@ -320,69 +342,53 @@ class MeleeEffect extends BaseEffect {
         else if (this.a.t === 'arc') { this.startAngle = -0.8; this.endAngle = 0.8; }
         this.checkHits();
     }
-    checkHits(){
-        this.game.enemies.forEach(e => {
-            if(this.hit.has(e.id)) return;
-            if(this.isColliding(e)){ this.game.dealDamage(e, this.dmg, this.w_item); this.hit.add(e.id); if(!this.w_data.p) this.isDone = true; }
-        });
-        this.game.particles.push(...Array(15).fill(0).map(() => new Particle(this.p.x + this.a.r / 2, this.p.y, '#fff', Math.random() * 4 + 2, 120, 600)));
-    }
-    isColliding(e){
-        if(this.a.t === 'arc'){ const dx = e.x - this.a.x, dy = e.y - this.a.y; return Math.hypot(dx, dy) < this.a.r + e.size; }
-        else if(this.a.t === 'rect'){ const rx = this.a.x + 10, ry = this.a.y - this.a.h / 2; const dx = Math.abs(e.x - rx - this.a.w / 2), dy = Math.abs(e.y - ry - this.a.h / 2); if(dx > this.a.w / 2 + e.size || dy > this.a.h / 2 + e.size) return false; if(dx <= this.a.w / 2 || dy <= this.a.h / 2) return true; return (dx - this.a.w / 2)**2 + (dy - this.a.h / 2)**2 <= e.size**2; }
-        return false;
-    }
-    draw(ctx){
-        const prog = 1 - this.life / this.maxLife; ctx.save(); ctx.fillStyle = this.w_data.e.c; ctx.globalAlpha = Math.sin(prog * Math.PI); ctx.shadowBlur = 15; ctx.shadowColor = this.w_data.e.c; ctx.translate(this.p.x, this.p.y);
-        if(this.a.t === 'arc'){ const ang = this.startAngle + (this.endAngle - this.startAngle) * prog; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, this.a.r, this.startAngle, ang); ctx.closePath(); ctx.fill(); }
-        else if(this.a.t === 'rect'){ ctx.fillRect(10, -this.a.h / 2, this.a.w, this.a.h); }
-        ctx.restore();
-    }
+    checkHits(){ this.game.enemies.forEach(e => { if(this.hit.has(e.id)) return; if(this.isColliding(e)){ this.game.dealDamage(e, this.dmg, this.w_item); this.hit.add(e.id); if(!this.w_data.p) this.isDone = true; } }); this.game.particles.push(...Array(15).fill(0).map(() => new Particle(this.p.x + this.a.r / 2, this.p.y, '#fff', Math.random() * 4 + 2, 120, 600))); }
+    isColliding(e){ if(this.a.t === 'arc'){ const dx = e.x - this.a.x, dy = e.y - this.a.y; return Math.hypot(dx, dy) < this.a.r + e.size; } else if(this.a.t === 'rect'){ const rx = this.a.x + 10, ry = this.a.y - this.a.h / 2; const dx = Math.abs(e.x - rx - this.a.w / 2), dy = Math.abs(e.y - ry - this.a.h / 2); if(dx > this.a.w / 2 + e.size || dy > this.a.h / 2 + e.size) return false; if(dx <= this.a.w / 2 || dy <= this.a.h / 2) return true; return (dx - this.a.w / 2)**2 + (dy - this.a.h / 2)**2 <= e.size**2; } return false; }
+    draw(ctx){ const prog = 1 - this.life / this.maxLife; ctx.save(); ctx.fillStyle = this.w_data.e.c; ctx.globalAlpha = Math.sin(prog * Math.PI); ctx.shadowBlur = 15; ctx.shadowColor = this.w_data.e.c; ctx.translate(this.p.x, this.p.y); if(this.a.t === 'arc'){ const ang = this.startAngle + (this.endAngle - this.startAngle) * prog; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, this.a.r, this.startAngle, ang); ctx.closePath(); ctx.fill(); } else if(this.a.t === 'rect'){ ctx.fillRect(10, -this.a.h / 2, this.a.w, this.a.h); } ctx.restore(); }
 }
+
 class SkillEffect extends BaseEffect {
     constructor(g, p, s){
         super(g, s.dur ? s.dur * 1000 : 300);
-        this.p = p; this.s = s;  this.x = g.mouse.x; this.y = g.mouse.y; this.dmg = this.p.attackPower * this.s.d; this.tick = 0; this.hit = new Set();
-        this.activate();
+        this.p = p; this.s = s; this.x = g.mouse.x; this.y = g.mouse.y; 
+        this.dmg = this.p.attackPower * (this.s.d || 1); 
+        this.tick = 0; this.hit = new Set(); this.activate();
     }
-    activate(){
-        switch(this.s.type){
-            case 'aoe': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); if(this.s.frz) e.freeze(this.s.frz); } }); this.game.particles.push(...Array(40).fill(0).map(() => new Particle(this.x, this.y, this.s.c, Math.random() * 6 + 3, 250, 1000))); break;
-            case 'chain': let t = null; for(let i = 0; i < this.s.t; i++){ const nt = this.findClosest(t ? t.x : this.p.x, t ? t.y : this.p.y); if(nt){ this.game.dealDamage(nt, this.dmg, null); this.hit.add(nt.id); t = nt; } else break; } break;
-            case 'heal': const h = this.p.maxHp * this.s.a; this.p.hp = Math.min(this.p.maxHp, this.p.hp + h); this.game.createFloatingText(`+${Math.ceil(h)}`, this.p.x, this.p.y, '100,255,100', 24); break;
-        }
-    }
-    findClosest(x, y, excluded = []){ let c = null, m = Infinity; this.game.enemies.forEach(e => { if(excluded.some(ex => ex && ex.id === e.id) || this.hit.has(e.id)) return; const d = Math.hypot(x - e.x, y - e.y); if(d < m){ m = d; c = e; } }); return c; }
-    update(dt){
-        super.update(dt);
-        if(['aura', 'aura_freeze', 'aura_lifesteal'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = this.s.tick * 1000; this.game.enemies.forEach(e => { if(Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r){ this.game.dealDamage(e, this.p.attackPower * this.s.d, null); if(this.s.type === 'aura_freeze' && this.s.frz) e.freeze(this.s.frz); if(this.s.type === 'aura_lifesteal') { const leech = Math.ceil(this.p.attackPower * this.s.d * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + leech); } } }); } }
-    }
-    draw(ctx){
-        ctx.save(); ctx.globalAlpha = Math.max(0, this.life / this.maxLife); ctx.fillStyle = this.s.c; ctx.shadowBlur = 20; ctx.shadowColor = this.s.c;
-        if(this.s.type.includes('aoe') || this.s.type.includes('aura')){ const x = this.s.type.includes('aura') ? this.p.x : this.x; const y = this.s.type.includes('aura') ? this.p.y : this.y; ctx.beginPath(); ctx.arc(x, y, this.s.r, 0, Math.PI * 2); ctx.fill(); }
-        ctx.restore();
-    }
+    activate(){ switch(this.s.type){ case 'aoe': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); if(this.s.frz) e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000); } }); this.game.particles.push(...Array(40).fill(0).map(() => new Particle(this.x, this.y, this.s.c, Math.random() * 6 + 3, 250, 1000))); break; case 'chain': let t = null; for(let i = 0; i < this.s.t; i++){ const nt = this.findClosest(t ? t.x : this.p.x, t ? t.y : this.p.y); if(nt){ this.game.dealDamage(nt, this.dmg, null); this.hit.add(nt.id); t = nt; this.game.particles.push(...Array(10).fill(0).map(() => new Particle(nt.x, nt.y, this.s.c, Math.random() * 4 + 2, 150, 800))); } else break; } break; case 'heal': const h = this.p.maxHp * this.s.a; this.p.hp = Math.min(this.p.maxHp, this.p.hp + h); this.game.createFloatingText(`+${Math.ceil(h)}`, this.p.x, this.p.y, '100,255,100', 24); this.game.particles.push(...Array(20).fill(0).map(() => new Particle(this.p.x, this.p.y, 'rgba(100,255,100,0.8)', Math.random() * 4 + 2, 100, 1000))); break; case 'shield': this.p.shieldAmount = Math.floor(this.p.maxHp * this.s.val); this.p.shieldDuration = this.s.dur * 1000; this.game.createFloatingText('보호막!', this.p.x, this.p.y, '52,152,219', 20); break; case 'rage': this.p.rageMultiplier = 1 + this.s.val; this.p.rageDuration = this.s.dur * 1000; this.game.createFloatingText('광폭화!', this.p.x, this.p.y, '231,76,60', 20); break; case 'earthquake': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); e.applyStatusEffect(STATUS_EFFECTS.STUN, 2000); } }); this.game.createFloatingText('지진!', this.x, this.y, '139,69,19', 24); this.game.particles.push(...Array(60).fill(0).map(() => new Particle(this.x + (Math.random() - 0.5) * this.s.r, this.y, this.s.c, Math.random() * 8 + 4, 200, 1500))); break; case 'assassinate': const cE = this.findClosest(this.p.x, this.p.y); if(cE && Math.hypot(this.p.x - cE.x, this.p.y - cE.y) < 250){ this.game.dealDamage(cE, this.dmg * (1 + (this.p.critRate / 100) * this.p.critDamage), null); this.game.createFloatingText('암살!', cE.x, cE.y, '255,50,50', 24); this.game.particles.push(...Array(30).fill(0).map(() => new Particle(cE.x, cE.y, 'rgba(255,50,50,0.8)', Math.random() * 6 + 3, 250, 1000))); } break; case 'holy_blast': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); } }); const hA2 = this.p.maxHp * this.s.a; this.p.hp = Math.min(this.p.maxHp, this.p.hp + hA2); this.game.createFloatingText(`신성 폭발! +${Math.ceil(hA2)}`, this.x, this.y, '255,215,0', 20); this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.x, this.y, this.s.c, Math.random() * 6 + 3, 300, 1200))); break; case 'time_warp': this.p.timeWarpMultiplier = 1 + this.s.val; this.p.timeWarpDuration = this.s.dur * 1000; this.game.createFloatingText('시간 왜곡!', this.p.x, this.p.y, '138,43,226', 20); break; case 'divine_shield': this.p.invulnerable = true; this.p.invulnerableDuration = this.s.dur * 1000; this.game.createFloatingText('무적!', this.p.x, this.p.y, '255,215,0', 24); break; } }
+    findClosest(x, y, e = []){ let c = null, mD = Infinity; this.game.enemies.forEach(en => { if(e.some(ex => ex && ex.id === en.id) || this.hit.has(en.id)) return; const d = Math.hypot(x - en.x, y - en.y); if(d < mD){ mD = d; c = en; } }); return c; }
+    update(dt){ super.update(dt); if(['aura', 'aura_poison', 'blizzard', 'blood_thirst'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = this.s.tick * 1000; this.game.enemies.forEach(e => { if(Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r){ this.game.dealDamage(e, this.p.attackPower * this.s.d, null); if(this.s.type === 'aura_poison') {e.applyStatusEffect(STATUS_EFFECTS.POISON, 3000);} if(this.s.type === 'blizzard') {e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000);} if(this.s.type === 'blood_thirst') { const l = Math.ceil(this.p.attackPower * this.s.d * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + l); } } }); } } }
+    draw(ctx){ ctx.save(); ctx.globalAlpha = Math.max(0, this.life / this.maxLife); ctx.fillStyle = this.s.c || 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 20; ctx.shadowColor = this.s.c || '#fff'; if(this.s.type.includes('aoe') || this.s.type.includes('aura') || ['earthquake', 'blizzard', 'holy_blast'].includes(this.s.type)){ const x = this.s.type.includes('aura') || ['blizzard', 'blood_thirst'].includes(this.s.type) ? this.p.x : this.x; const y = this.s.type.includes('aura') || ['blizzard', 'blood_thirst'].includes(this.s.type) ? this.p.y : this.y; ctx.beginPath(); ctx.arc(x, y, this.s.r || 100, 0, Math.PI * 2); ctx.fill(); } ctx.restore(); }
 }
 
 class Game {
-    constructor(){ this.canvas = document.getElementById('gameCanvas'); this.ctx = this.canvas.getContext('2d'); this.init(); }
+    constructor(){ this.canvas = document.getElementById('gameCanvas'); this.ctx = this.canvas.getContext('2d'); this.timeScale = 1.0; this.init(); }
     init(isRestart = false){
         this.isGameOver = false; this.canvas.width = 1280; this.canvas.height = 720; this.groundY = this.canvas.height - 80;
         this.resetPlayerState();
         this.enemies = []; this.projectiles = []; this.activeEffects = []; this.floatingTexts = []; this.particles = [];
         this.currentFloor = 1; this.currentWave = 1; this.totalWaves = 5; this.inventoryFilter = 'all'; this.floorCompleted = false;
         this.pityCounter = 100; this.keys = {}; this.mouse = {x:0, y:0, isDown:false}; this.lastAttackTime = 0; this.skillEquipSlot = -1;
+        
         ['inventoryPanel', 'gachaPanel', 'talentPanel'].forEach(id => document.getElementById(id).style.display = 'none');
         this.closeModal('gameOverScreen');
+        this.resume();
+        
         if (!this.eventListenersAttached) { this.setupEventListeners(); this.eventListenersAttached = true; }
         if (!isRestart) { this.loadGame(); }
+        
         document.getElementById('ui').style.display = 'block';
         this.spawnWave(); this.updateStats(); this.updateUI(); this.initTalentTree();
         if (!this.gameLoopRunning || isRestart) { this.lastFrameTime = performance.now(); this.gameLoop(); }
     }
     resetPlayerState(){
-        this.player = { x: 200, y: this.canvas.height - 80 - 20, size: 20, hp: 100, maxHp: 100, defense: 0, level: 1, exp: 0, expToNext: 100, gold: 1000, gachaTokens: 200, baseAttackPower: 5, attackPower: 5, skillCooldowns: [0, 0, 0, 0] };
-        this.equipment = {weapon: null, armor: null, skills: [null, null, null, null]}; this.inventory = []; this.talents = {}; this.talentPoints = 0;
+        this.player = { 
+            x: 200, y: this.canvas.height - 80 - 20, size: 20, hp: 100, maxHp: 100, defense: 0, level: 1, exp: 0, expToNext: 100,
+            gold: 1000, gachaTokens: 200, baseAttackPower: 5, attackPower: 5, critRate: 0.05, critDamage: 1.5,
+            skillCooldowns: [0, 0, 0, 0], shieldAmount: 0, shieldDuration: 0, rageMultiplier: 1, rageDuration: 0, 
+            timeWarpMultiplier: 1, timeWarpDuration: 0, invulnerable: false, invulnerableDuration: 0
+        };
+        this.equipment = {weapon: null, armor: null, skills: [null, null, null, null]}; 
+        this.inventory = []; this.talents = {}; this.talentPoints = 0;
     }
     setupEventListeners(){
         const kh = (e, v) => { this.keys[e.key.toLowerCase()] = v; if(v && e.key >= '1' && e.key <= '4') this.useSkill(parseInt(e.key) - 1); };
@@ -397,9 +403,11 @@ class Game {
         document.getElementById('armorArea').addEventListener('click', () => this.openView('inventoryPanel', 'armor'));
         setInterval(() => { if(!this.isGameOver) this.saveGame(); }, 5000);
     }
+    pause() { this.timeScale = 0; document.getElementById('pauseIndicator').style.display = 'block'; }
+    resume() { this.timeScale = 1; document.getElementById('pauseIndicator').style.display = 'none'; }
     gameLoop(){
         this.gameLoopRunning = true; if(this.isGameOver) { this.gameLoopRunning = false; return; }
-        const n = performance.now(); const dt = Math.min(n - (this.lastFrameTime || n), 100);
+        const n = performance.now(); const dt = (n - (this.lastFrameTime || n)) * this.timeScale;
         this.lastFrameTime = n; this.update(dt); this.draw();
         requestAnimationFrame(() => this.gameLoop());
     }
@@ -408,6 +416,7 @@ class Game {
         if(this.keys['d'] || this.keys['arrowright']) this.player.x += 300 * (dt / 1000);
         this.player.x = Math.max(this.player.size, Math.min(this.canvas.width - this.player.size, this.player.x));
         this.player.skillCooldowns = this.player.skillCooldowns.map(cd => Math.max(0, cd - dt));
+        this.updatePlayerBuffs(dt);
         this.applyTalentEffects(dt);
         for(let key of ['activeEffects', 'projectiles', 'enemies', 'particles', 'floatingTexts']){
             for(let i = this[key].length - 1; i >= 0; i--){
@@ -420,339 +429,219 @@ class Game {
         if(this.enemies.length === 0 && !this.floorCompleted){ if(this.currentWave < this.totalWaves){ this.currentWave++; this.spawnWave(); } else { this.completeFloor(); } }
         this.updateUI();
     }
-    applyTalentEffects(dt) { if(this.talents['def3']) { const regenAmount = this.player.maxHp * 0.005 * (dt / 1000); this.player.hp = Math.min(this.player.maxHp, this.player.hp + regenAmount); } if(this.talents['def8']) { const regenAmount = this.player.maxHp * 0.01 * (dt / 1000); this.player.hp = Math.min(this.player.maxHp, this.player.hp + regenAmount); } }
+    updatePlayerBuffs(dt) {
+        if (this.player.shieldDuration > 0) { this.player.shieldDuration -= dt; if (this.player.shieldDuration <= 0) this.player.shieldAmount = 0; }
+        if (this.player.rageDuration > 0) { this.player.rageDuration -= dt; if (this.player.rageDuration <= 0) this.player.rageMultiplier = 1; }
+        if (this.player.timeWarpDuration > 0) { this.player.timeWarpDuration -= dt; if (this.player.timeWarpDuration <= 0) this.player.timeWarpMultiplier = 1; }
+        if (this.player.invulnerableDuration > 0) { this.player.invulnerableDuration -= dt; if (this.player.invulnerableDuration <= 0) this.player.invulnerable = false; }
+    }
+    applyTalentEffects(dt) { if(this.talents['def3']) { const rA = this.player.maxHp * 0.005 * (dt / 1000); this.player.hp = Math.min(this.player.maxHp, this.player.hp + rA); } if(this.talents['def8']) { const rA = this.player.maxHp * 0.01 * (dt / 1000); this.player.hp = Math.min(this.player.maxHp, this.player.hp + rA); } }
     handleCollisions(){ this.enemies.forEach(e => { for(let i = this.projectiles.length - 1; i >= 0; i--) { const p = this.projectiles[i]; if(Math.hypot(p.x - e.x, p.y - e.y) < e.size){ this.dealDamage(e, this.player.attackPower); if(!p.p) this.projectiles.splice(i, 1); } } }); }
     draw(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height); gradient.addColorStop(0, '#2c3e50'); gradient.addColorStop(1, '#34495e'); this.ctx.fillStyle = gradient; this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        const g = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height); g.addColorStop(0, '#2c3e50'); g.addColorStop(1, '#34495e'); this.ctx.fillStyle = g; this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.fillStyle = '#4a524a'; this.ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
-        for(let key of ['activeEffects', 'particles', 'projectiles', 'enemies']){ this[key].forEach(item => item.draw(this.ctx)); }
-        this.ctx.save(); this.ctx.shadowBlur = 10; this.ctx.shadowColor = '#3498db'; this.ctx.fillStyle = '#3498db'; this.ctx.beginPath(); this.ctx.arc(this.player.x, this.player.y, this.player.size, 0, 2 * Math.PI); this.ctx.fill(); this.ctx.restore();
-        this.floatingTexts.forEach(t => { this.ctx.fillStyle = `rgba(${t.c}, ${t.alpha})`; this.ctx.font = `bold ${t.s}px 'Noto Sans KR'`; this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; this.ctx.lineWidth = 3; this.ctx.strokeText(t.text, t.x, t.y); this.ctx.fillText(t.text, t.x, t.y); });
-        if(this.mouse.isDown){
-            const weaponItem = this.equipment.weapon || {name: '맨손'}; const w = WEAPON_DATA[weaponItem.name];
-            if(w.t === 'r' || w.t === 'g'){
-                const pLife = w.life; const dist = pLife / 1000 * w.v * 30; this.ctx.beginPath(); this.ctx.moveTo(this.player.x, this.player.y);
-                const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x); this.ctx.lineTo(this.player.x + dist * Math.cos(angle), this.player.y + dist * Math.sin(angle));
-                this.ctx.strokeStyle = 'rgba(255,255,255,0.5)'; this.ctx.lineWidth = 3; this.ctx.stroke();
+        for(let k of ['activeEffects', 'particles', 'projectiles', 'enemies']){ this[k].forEach(i => i.draw(this.ctx)); }
+        
+        if (this.mouse.isDown) {
+            const weaponItem = this.equipment.weapon || { name: '맨손', rarity: 'N' };
+            const w = WEAPON_DATA[weaponItem.name];
+            const rarityBonus = weaponItem.rarity ? Object.keys(RARITY_DATA).indexOf(weaponItem.rarity) * 0.1 : 0;
+            this.ctx.save();
+            this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            this.ctx.lineWidth = 2;
+            this.ctx.setLineDash([5, 5]);
+            this.ctx.beginPath();
+            if (w.t === 'r' || w.t === 'g') {
+                const range = w.r || 500; // 원거리 무기 사거리 기본값
+                this.ctx.arc(this.player.x, this.player.y, range * (1 + rarityBonus), 0, Math.PI * 2);
             } else {
-                const rarityBonus = weaponItem.rarity ? Object.keys(RARITY_DATA).indexOf(weaponItem.rarity) * 0.1 : 0;
-                this.ctx.save(); this.ctx.fillStyle = 'rgba(255,255,255,0.3)'; this.ctx.translate(this.player.x, this.player.y);
-                if(w.e.type === 'arc'){ this.ctx.beginPath(); this.ctx.arc(0, 0, w.r * (1 + rarityBonus), -0.8, 0.8); this.ctx.lineTo(0, 0); this.ctx.fill(); }
-                else if(w.e.type === 'rect'){ this.ctx.fillRect(10, -w.e.h / 2, w.e.w * (1 + rarityBonus), w.e.h); }
-                this.ctx.restore();
+                const range = w.r * (1 + rarityBonus);
+                if (w.e.type === 'arc') {
+                    this.ctx.arc(this.player.x, this.player.y, range, -0.8, 0.8);
+                } else if (w.e.type === 'rect') {
+                    this.ctx.rect(this.player.x + 10, this.player.y - w.e.h/2, w.e.w * (1 + rarityBonus), w.e.h);
+                }
             }
+            this.ctx.stroke();
+            this.ctx.restore();
         }
+
+        this.ctx.save(); this.ctx.shadowBlur = 10; this.ctx.shadowColor = '#3498db'; if (this.player.invulnerable) { this.ctx.shadowColor = '#ffd700'; this.ctx.fillStyle = '#ffd700'; } else if (this.player.shieldAmount > 0) { this.ctx.shadowColor = '#3498db'; this.ctx.fillStyle = '#3498db'; } else if (this.player.rageMultiplier > 1) { this.ctx.shadowColor = '#e74c3c'; this.ctx.fillStyle = '#e74c3c'; } else { this.ctx.fillStyle = '#3498db'; } this.ctx.beginPath(); this.ctx.arc(this.player.x, this.player.y, this.player.size, 0, 2 * Math.PI); this.ctx.fill(); this.ctx.restore();
+        this.floatingTexts.forEach(t => { this.ctx.fillStyle = `rgba(${t.c}, ${t.alpha})`; this.ctx.font = `bold ${t.s}px 'Noto Sans KR'`; this.ctx.strokeStyle = 'rgba(0,0,0,0.8)'; this.ctx.lineWidth = 3; this.ctx.strokeText(t.text, t.x, t.y); this.ctx.fillText(t.text, t.x, t.y); });
     }
+    
     attack(){
-        const weaponItem = this.equipment.weapon || {name: '맨손', rarity: 'N'}; const w = WEAPON_DATA[weaponItem.name];
-        let attackSpeed = w.s; if(this.talents['util1']) attackSpeed *= 1.1; if(this.talents['util6']) attackSpeed *= 1.15;
-        if(Date.now() - this.lastAttackTime < 1000 / attackSpeed) return; this.lastAttackTime = Date.now();
-        if(w.t === 'r' || w.t === 'g'){
-            const c = w.e.count || 1; const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
-            for(let i = 0; i < c; i++){
-                const spreadAngle = angle + (i - (c - 1) / 2) * (w.e.spread || 0);
-                this.projectiles.push({ x: this.player.x, y: this.player.y, vx: Math.cos(spreadAngle) * w.v * 30, vy: Math.sin(spreadAngle) * w.v * 30, p: w.p, c: weaponItem ? RARITY_DATA[weaponItem.rarity].c : '#fff', life: w.life,
-                    update(dt){ this.life -= dt; this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000); },
-                    draw(ctx){ ctx.save(); ctx.shadowBlur = 8; ctx.shadowColor = this.c; ctx.fillStyle = this.c; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); }
-                });
-            }
-        } else { this.activeEffects.push(new MeleeEffect(this, weaponItem)); }
+        const wI = this.equipment.weapon || {name: '맨손', rarity: 'N'}; const w = WEAPON_DATA[wI.name];
+        let aS = w.s; if(this.talents['util1']) aS *= 1.1; if(this.talents['util6']) aS *= 1.15;
+        if(Date.now() - this.lastAttackTime < 1000 / aS) return; this.lastAttackTime = Date.now();
+        if(w.t === 'r' || w.t === 'g'){ const c = w.e.count || 1; const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x); for(let i = 0; i < c; i++){ const sA = angle + (i - (c - 1) / 2) * (w.e.spread || 0); this.projectiles.push({ x: this.player.x, y: this.player.y, vx: Math.cos(sA) * w.v * 30, vy: Math.sin(sA) * w.v * 30, p: w.p, c: wI ? RARITY_DATA[wI.rarity].c : '#fff', life: w.life, update(dt){ this.life -= dt; this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000); }, draw(ctx){ ctx.save(); ctx.shadowBlur = 8; ctx.shadowColor = this.c; ctx.fillStyle = this.c; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); } }); }
+        } else { this.activeEffects.push(new MeleeEffect(this, wI)); }
     }
+    
     useSkill(i){
         const s = this.equipment.skills[i]; if(!s || this.player.skillCooldowns[i] > 0) return;
-        const d = SKILL_DATA[s.name]; let cooldown = d.cd;
-        if(this.talents['util3']) cooldown *= 0.9; if(this.talents['util6']) cooldown *= 0.85;
-        this.player.skillCooldowns[i] = cooldown * 1000;
+        const d = SKILL_DATA[s.name]; let cd = d.cd;
+        if(this.talents['util3']) cd *= 0.9; if(this.talents['util6']) cd *= 0.85; if (this.talents['util10']) cd *= 0.85;
+        this.player.skillCooldowns[i] = cd * 1000;
         if(this.talents['util7'] && Math.random() < 0.05) { this.player.skillCooldowns[i] = 0; this.createNotification('마력 폭주! 쿨타임 초기화!', 'success'); }
         this.activeEffects.push(new SkillEffect(this, this.player, d));
     }
-    dealDamage(e, d, weaponItem = this.equipment.weapon){
+    
+    dealDamage(e, d, weaponItem = this.equipment.weapon, isStatusEffect = false){
+        if(isStatusEffect) { e.takeDamage(d); return; }
+        
         let finalDamage = d;
-        if (weaponItem && weaponItem.name) { const weaponData = WEAPON_DATA[weaponItem.name]; if (weaponData) { finalDamage *= weaponData.d; } }
+        if (weaponItem && weaponItem.name) { const wd = WEAPON_DATA[weaponItem.name]; if (wd) { finalDamage *= wd.d; } }
+        
+        finalDamage *= this.player.rageMultiplier;
+        
         if (this.talents['spec4'] && e.hp / e.maxHp <= 0.2) finalDamage *= 1.5;
         if (this.talents['spec7'] && e.isElite) finalDamage *= 1.25;
         if (this.talents['spec8']) finalDamage *= 1.2;
-        if (this.talents['atk5'] && Math.random() < 0.1) { finalDamage *= 2; this.createFloatingText('결정타!', e.x, e.y - 20, '255,50,50', 24); }
-        const f = Math.floor(finalDamage); e.takeDamage(f);
-        this.createFloatingText(`-${f}`, e.x, e.y, '255,200,50', 20);
-        if (this.talents['spec1']) { this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(f * 0.02)); }
-        if (this.talents['spec2']) { const reflectDamage = Math.floor(d * 0.1); e.takeDamage(reflectDamage); }
-        if(weaponItem && weaponItem.special === '흡혈 10%'){ this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(f * 0.1)); }
+        if (e.statusEffects.has(STATUS_EFFECTS.VULNERABLE)) finalDamage *= 1.2;
+        
+        let critChance = this.player.critRate;
+        if(this.talents['spec10']) critChance += 0.05;
+
+        const isCrit = Math.random() < critChance;
+        if (isCrit) {
+            finalDamage *= this.player.critDamage;
+            if (this.talents['atk5'] && Math.random() < 0.1) { finalDamage *= 2; this.createFloatingText('결정타!', e.x, e.y - 20, '255,50,50', 24); }
+        }
+        
+        const fD = Math.floor(finalDamage); 
+        e.takeDamage(fD);
+        
+        this.createFloatingText(`-${fD}`, e.x, e.y, isCrit ? '255,100,0' : '255,200,50', isCrit ? 24 : 20);
+        
+        if (this.talents['spec1']) { this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(fD * 0.02)); }
+        if (this.talents['spec2']) { const rD = Math.floor(d * 0.1); e.takeDamage(rD); }
+        if(weaponItem && weaponItem.special === '흡혈 10%'){ this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.ceil(fD * 0.1)); }
+        if (this.talents['spec9'] && Math.random() < 0.05) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, 2000); e.applyStatusEffect(STATUS_EFFECTS.VULNERABLE, 2000); }
+        
         if(e.hp <= 0) this.killEnemy(e, weaponItem);
     }
+    
     killEnemy(e, w){
         if(w && w.special === '처치 시 폭발'){ this.activeEffects.push(new SkillEffect(this, this.player, {type: 'aoe', r: 80, d: 0.5, c: 'rgba(255,150,50,0.6)'})); }
-        this.enemies = this.enemies.filter(en => en.id !== e.id); let expGain = e.isElite ? 80 : 30; if(this.talents['util2']) expGain *= 1.2; this.gainExp(expGain);
-        let goldGain = (e.isElite ? 40 : 15) * this.currentFloor;
-        if(this.talents['greed1']) goldGain *= 1.2; if(this.talents['greed7']) goldGain *= 1.3; if(this.talents['greed4'] && Math.random() < 0.05) goldGain *= 10;
-        this.player.gold += Math.floor(goldGain);
-        let tokenChance = 0.3; if(this.talents['greed2']) tokenChance += 0.15; if(this.talents['greed7']) tokenChance += 0.3;
-        if(Math.random() < tokenChance) this.player.gachaTokens += Math.ceil(this.currentFloor / 5) + 1;
+        this.enemies = this.enemies.filter(en => en.id !== e.id); let eG = e.isElite ? 80 : 30; if(this.talents['util2']) eG *= 1.2; this.gainExp(eG);
+        let gG = (e.isElite ? 40 : 15) * this.currentFloor;
+        if(this.talents['greed1']) gG *= 1.2; if(this.talents['greed7']) gG *= 1.3; if(this.talents['greed4'] && Math.random() < 0.05) gG *= 10;
+        this.player.gold += Math.floor(gG);
+        let tC = 0.3; if(this.talents['greed2']) tC += 0.15; if(this.talents['greed7']) tC += 0.3; if (this.talents['greed10'] && Math.random() < 0.02) tC = 1;
+        if(Math.random() < tC) this.player.gachaTokens += Math.ceil(this.currentFloor / 5) + 1;
         if(this.talents['atk7']) { this.player.tempAttackBonus = (this.player.tempAttackBonus || 0) + 0.2; setTimeout(() => { this.player.tempAttackBonus -= 0.2; this.updateStats(); }, 5000); this.updateStats(); }
+        if(this.talents['util9'] && Math.random() < 0.1) { this.player.skillCooldowns = this.player.skillCooldowns.map(cd => Math.max(0, cd - 1000)); }
     }
+    
     takeDamage(d){
-        let finalDamage = d - this.player.defense; if(this.talents['def4']) finalDamage *= 0.9; if(this.talents['def8']) finalDamage *= 0.85; if(this.talents['spec8']) finalDamage *= 1.1;
-        if(this.talents['def6'] && Math.random() < 0.1) { this.createFloatingText('회피!', this.player.x, this.player.y, '100,255,255', 24); return; }
+        if (this.player.invulnerable) return;
+        if (this.player.divineShieldCharges > 0) { this.player.divineShieldCharges--; this.createFloatingText('신의 가호!', this.player.x, this.player.y, '#ffd700', 24); return; }
+        
+        let finalDamage = d;
+        if (this.player.shieldAmount > 0) { const damageToShield = Math.min(this.player.shieldAmount, finalDamage); this.player.shieldAmount -= damageToShield; finalDamage -= damageToShield; }
+        
+        finalDamage -= this.player.defense; 
+        if(this.talents['def4']) finalDamage *= 0.9; if(this.talents['def8']) finalDamage *= 0.85; if(this.talents['spec8']) finalDamage *= 1.1;
+        
+        let dodgeChance = 0; if (this.talents['def6']) dodgeChance += 0.1; if (this.talents['spec10']) dodgeChance += 0.05;
+        if(Math.random() < dodgeChance) { this.createFloatingText('회피!', this.player.x, this.player.y, '100,255,255', 24); return; }
+        
         finalDamage = Math.max(1, finalDamage);
-        this.player.hp -= finalDamage; this.createFloatingText(`-${Math.floor(finalDamage)}`, this.player.x, this.player.y, '255,50,50', 26);
+        
+        this.player.hp -= finalDamage; 
+        this.createFloatingText(`-${Math.floor(finalDamage)}`, this.player.x, this.player.y, '255,50,50', 26);
+        
         if(this.player.hp <= 0) {
             if(this.talents['spec3'] && !this.player.usedDeathResist) { this.player.hp = 1; this.player.usedDeathResist = true; this.createFloatingText('죽음의 저항!', this.player.x, this.player.y - 30, '255,215,0', 30); }
             else { this.gameOver(); }
         }
     }
+    
     levelUp(){
         this.player.level++; this.player.exp = 0; this.player.expToNext = Math.floor(100 * (1.2**this.player.level));
         this.player.maxHp += 20; this.player.hp = this.player.maxHp; this.player.baseAttackPower += 2;
-        let pointsGained = this.player.level <= 10 ? 1 : (this.player.level <= 25 ? 2 : 3); this.talentPoints += pointsGained;
-        this.updateStats(); this.createNotification(`레벨 업! 특성 포인트 +${pointsGained}`, 'success'); this.initTalentTree();
+        let pG = this.player.level <= 10 ? 1 : (this.player.level <= 25 ? 2 : 3); this.talentPoints += pG;
+        this.updateStats(); this.createNotification(`레벨 업! 특성 포인트 +${pG}`, 'success'); this.initTalentTree();
     }
+    
     gainExp(a){ this.player.exp += a; if(this.player.exp >= this.player.expToNext) this.levelUp(); }
+    
     rollGacha(){
-        let rarity = 'N';
-        if(--this.pityCounter <= 0) {
-            const highRarities = ['SSR','UR','L','U','SU','SSU','M','LM','EN','G']; rarity = highRarities[Math.floor(Math.random() * highRarities.length)]; this.pityCounter = 100;
-        } else {
-            const random = Math.random(); let cumulative = 0;
-            for(const [key, data] of Object.entries(RARITY_DATA)) { cumulative += data.r; if(random < cumulative) { rarity = key; break; } }
-        }
-        const typeRandom = Math.random(); let type, namePool;
-        if(typeRandom < 0.45) { type = 'weapon'; namePool = Object.keys(WEAPON_DATA).filter(name => name !== '맨손'); }
-        else if(typeRandom < 0.8) { type = 'armor'; namePool = Object.keys(ARMOR_DATA); }
-        else { type = 'skill'; namePool = Object.keys(SKILL_DATA); }
-        const name = namePool[Math.floor(Math.random() * namePool.length)];
-        const newItem = { id: `${Date.now()}${Math.random()}`, name: name, type: type, rarity: rarity, level: 0, power: Math.floor(5 * RARITY_DATA[rarity].p) };
-        if(Object.keys(RARITY_DATA).indexOf(rarity) >= 4 && type === 'weapon') { newItem.special = SSR_WEAPON_SPECIALS[Math.floor(Math.random() * SSR_WEAPON_SPECIALS.length)]; }
-        return newItem;
+        let r = 'N';
+        if(--this.pityCounter <= 0) { const hR = ['SSR','UR','L','U','SU','SSU','M','LM','EN','G']; r = hR[Math.floor(Math.random() * hR.length)]; this.pityCounter = 100; } 
+        else { const rand = Math.random(); let cum = 0; for(const [k, d] of Object.entries(RARITY_DATA)) { cum += d.r; if(rand < cum) { r = k; break; } } }
+        const tR = Math.random(); let type, nP;
+        if(tR < 0.45) { type = 'weapon'; nP = Object.keys(WEAPON_DATA).filter(n => n !== '맨손'); }
+        else if(tR < 0.8) { type = 'armor'; nP = Object.keys(ARMOR_DATA); }
+        else { type = 'skill'; nP = Object.keys(SKILL_DATA); }
+        const name = nP[Math.floor(Math.random() * nP.length)];
+        const nI = { id: `${Date.now()}${Math.random()}`, name: name, type: type, rarity: r, level: 0, power: Math.floor(5 * RARITY_DATA[r].p) };
+        if(Object.keys(RARITY_DATA).indexOf(r) >= 4 && type === 'weapon') { nI.special = SSR_WEAPON_SPECIALS[Math.floor(Math.random() * SSR_WEAPON_SPECIALS.length)]; }
+        return nI;
     }
-    enhanceItem(id) {
-        const i = this.inventory.find(it => it.id === id);
-        if (!i || i.level >= 10) return;
-
-        const level = i.level;
-
-        // 강화 비용 계산 (2.1 지수승으로 증가)
-        let cost = Math.floor(150 * Math.pow(2.3, level));
-        if (this.talents['greed5']) cost = Math.floor(cost * 0.8);
-
-        if (this.player.gold < cost) {
-            this.createNotification('골드가 부족합니다!', 'error');
-            return;
-        }
-        this.player.gold -= cost;
-
-        // 성공 확률 (0.5^레벨)
-        const successRate = Math.pow(0.5, level);
-        const failRate = 1 - successRate;
-
-        // 파괴 확률 (5레벨 이상부터 적용)
-        let destroyRate = 0;
-        if (level >= 5) {
-            destroyRate = Math.min(0.5, 0.05 * Math.pow(level - 4, 1.3));
-        }
-
-        // 강화 결과
-        if (Math.random() < successRate) {
-            i.level++;
-            i.power = Math.floor(i.power * 1.3);
-            this.createNotification(`(+${i.level}) ${i.name} 강화 성공!`, 'success');
-        } else {
-            if (level >= 5 && Math.random() < destroyRate) {
-                // 장비 파괴
-                this.inventory = this.inventory.filter(it => it.id !== id);
-                this.createNotification(`${i.name} 강화 실패! 장비가 파괴되었습니다!`, 'error');
-            } else {
-                // 강화 실패만
-                this.createNotification('강화 실패...', 'error');
-            }
-        }
-
-        this.updateStats();
-        this.updateInventoryDisplay();
+    
+    enhanceItem(id){
+        const i = this.inventory.find(it => it.id === id); if(!i || i.level >= 10) return;
+        let c = Math.floor(150 * Math.pow(2.3, i.level)); if(this.talents['greed5']) c = Math.floor(c * 0.8);
+        if(this.player.gold < c){ this.createNotification('골드가 부족합니다!', 'error'); return; }
+        this.player.gold -= c; const sR = Math.pow(0.5, i.level);
+        if(Math.random() < sR){ i.level++; i.power = Math.floor(i.power * 1.3); this.createNotification(`(+${i.level}) ${i.name} 강화 성공!`, 'success'); }
+        else { this.createNotification('강화 실패...', 'error'); }
+        this.updateStats(); this.updateInventoryDisplay();
     }
-
+    
     updateStats(){
-        const w = this.equipment.weapon, a = this.equipment.armor; let baseAttack = (this.player.baseAttackPower || 5) + (w ? w.power : 0);
-        let baseHp = 100 + (this.player.level - 1) * 20; let baseDefense = a ? a.power : 0;
-        if(this.talents['atk1']) baseAttack *= 1.1; if(this.talents['atk6']) baseAttack *= 1.25; if(this.talents['atk8']) baseAttack *= 1.2;
-        if(this.talents['def1']) baseHp *= 1.15; if(this.talents['def2']) baseDefense *= 1.2; if(this.talents['def7']) { baseHp *= 1.3; baseDefense *= 1.3; }
-        if(this.talents['spec6']) { baseAttack *= 1.15; baseHp *= 1.15; baseDefense *= 1.15; }
-        baseAttack *= (1 + (this.player.tempAttackBonus || 0));
-        this.player.attackPower = Math.floor(baseAttack); this.player.defense = Math.floor(baseDefense); this.player.maxHp = Math.floor(baseHp);
+        const w = this.equipment.weapon, a = this.equipment.armor; let bA = (this.player.baseAttackPower || 5) + (w ? w.power : 0);
+        let bH = 100 + (this.player.level - 1) * 20; let bD = a ? a.power : 0;
+        if(this.talents['atk1']) bA *= 1.1; if(this.talents['atk6']) bA *= 1.25; if(this.talents['atk8']) bA *= 1.2;
+        if(this.talents['def1']) bH *= 1.15; if(this.talents['def2']) bD *= 1.2; if(this.talents['def7']) { bH *= 1.3; bD *= 1.3; }
+        if(this.talents['spec6']) { bA *= 1.15; bH *= 1.15; bD *= 1.15; }
+        bA *= (1 + (this.player.tempAttackBonus || 0));
+        this.player.attackPower = Math.floor(bA); this.player.defense = Math.floor(bD); this.player.maxHp = Math.floor(bH);
+        
+        let critRate = 0.05; if(this.talents['atk3']) critRate += 0.05; if(this.talents['atk8']) critRate += 0.1; this.player.critRate = critRate;
+        let critDmg = 1.5; if(this.talents['atk2']) critDmg += 0.3; this.player.critDamage = critDmg;
+        
         if(this.player.hp > this.player.maxHp) this.player.hp = this.player.maxHp; 
         this.updateUI();
     }
+    
     startSkillEquip(slotIndex) { this.skillEquipSlot = slotIndex; this.openView('inventoryPanel', 'skill'); this.createNotification(`${slotIndex + 1}번 슬롯에 장착할 스킬을 선택하세요.`, 'info'); }
-    equipSkill(item) {
-        if (this.skillEquipSlot === -1 || item.type !== 'skill') return;
-        const isAlreadyEquipped = this.equipment.skills.some(s => s && s.id === item.id);
-        if (isAlreadyEquipped) { this.createNotification('이미 다른 슬롯에 장착된 스킬입니다.', 'error'); return; }
-        this.equipment.skills[this.skillEquipSlot] = item;
-        this.createNotification(`${item.name} 스킬을 ${this.skillEquipSlot + 1}번에 장착했습니다.`, 'success');
-        this.skillEquipSlot = -1; this.closeView('inventoryPanel'); this.updateUI();
-    }
+    equipSkill(item) { if (this.skillEquipSlot === -1 || item.type !== 'skill') return; if (this.equipment.skills.some(s => s && s.id === item.id)) { this.createNotification('이미 다른 슬롯에 장착된 스킬입니다.', 'error'); return; } this.equipment.skills[this.skillEquipSlot] = item; this.createNotification(`${item.name} 스킬을 ${this.skillEquipSlot + 1}번에 장착했습니다.`, 'success'); this.skillEquipSlot = -1; this.closeView('inventoryPanel'); this.updateUI(); }
+    
     updateUI(){
-        const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerGold': this.player.gold.toLocaleString(), 'gachaTokens': this.player.gachaTokens, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
+        const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerCritRate': `${(this.player.critRate * 100).toFixed(0)}%`, 'playerGold': this.player.gold.toLocaleString(), 'gachaTokens': this.player.gachaTokens, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
         Object.entries(statMappings).forEach(([id, val]) => { const el = document.getElementById(id); if(el) el.textContent = val; });
         document.getElementById('hpBar').style.width = `${Math.max(0, this.player.hp / this.player.maxHp * 100)}%`; document.getElementById('expBar').style.width = `${this.player.exp / this.player.expToNext * 100}%`;
-        const baseSpeed = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2; let finalSpeed = baseSpeed;
-        if(this.talents['util1']) finalSpeed *= 1.1; if(this.talents['util6']) finalSpeed *= 1.15;
-        document.getElementById('playerAttackSpeed').textContent = finalSpeed.toFixed(1);
-        ['weapon', 'armor'].forEach(type => {
-            const item = this.equipment[type]; const slot = document.getElementById(`${type}Slot`);
-            if(item) {
-                const rarityData = RARITY_DATA[item.rarity];
-                slot.innerHTML = `<div style="font-size: 11px; margin-top: 2px;"><span style="color:${rarityData.c}">(${item.rarity})</span> ${item.name}<br>+${item.level}</div>`;
-                slot.style.borderColor = rarityData.c; slot.classList.add('filled');
-            } else {
-                const defaultText = type === 'weapon' ? '맨손' : '없음';
-                slot.innerHTML = `<div style="font-size: 11px; margin-top: 2px;">${defaultText}</div>`;
-                slot.style.borderColor = '#666'; slot.classList.remove('filled');
-            }
-        });
-        this.equipment.skills.forEach((skill, index) => {
-            const slot = document.getElementById(`skillSlot${index}`);
-            if(skill) {
-                slot.innerHTML = `<div style="font-size: 10px; margin-top: 2px;"><span style="color:${RARITY_DATA[skill.rarity].c}">(${skill.rarity})</span><br>${skill.name}</div><div class="cooldown-overlay"></div>`;
-                slot.style.borderColor = RARITY_DATA[skill.rarity].c; slot.classList.add('filled');
-                const isReady = this.player.skillCooldowns[index] <= 0; slot.classList.toggle('skill-ready', isReady);
-                const cooldownOverlay = slot.querySelector('.cooldown-overlay'); if(cooldownOverlay) { const cooldownPercent = this.player.skillCooldowns[index] / (SKILL_DATA[skill.name].cd * 1000) * 100; cooldownOverlay.style.height = `${Math.max(0, cooldownPercent)}%`; }
-            } else {
-                slot.innerHTML = `<div class="cooldown-overlay"></div><div style="font-size: 9px;">빈 슬롯</div>`;
-                slot.style.borderColor = '#666'; slot.classList.remove('filled', 'skill-ready');
-                const cooldownOverlay = slot.querySelector('.cooldown-overlay'); if(cooldownOverlay) cooldownOverlay.style.height = '0%';
-            }
-        });
+        const bS = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2; let fS = bS * this.player.timeWarpMultiplier;
+        if(this.talents['util1']) fS *= 1.1; if(this.talents['util6']) fS *= 1.15;
+        document.getElementById('playerAttackSpeed').textContent = fS.toFixed(1);
+        ['weapon', 'armor'].forEach(type => { const i = this.equipment[type]; const s = document.getElementById(`${type}Slot`); if(i) { const rD = RARITY_DATA[i.rarity]; s.innerHTML = `<div style="font-size: 11px; margin-top: 2px;"><span style="color:${rD.c}">(${i.rarity})</span> ${i.name}<br>+${i.level}</div>`; s.style.borderColor = rD.c; s.classList.add('filled'); } else { const dT = type === 'weapon' ? '맨손' : '없음'; s.innerHTML = `<div style="font-size: 11px; margin-top: 2px;">${dT}</div>`; s.style.borderColor = '#666'; s.classList.remove('filled'); } });
+        this.equipment.skills.forEach((skill, index) => { const slot = document.getElementById(`skillSlot${index}`); if(skill) { slot.innerHTML = `<div style="font-size: 10px; margin-top: 2px;"><span style="color:${RARITY_DATA[skill.rarity].c}">(${skill.rarity})</span><br>${skill.name}</div><div class="cooldown-overlay"></div>`; slot.style.borderColor = RARITY_DATA[skill.rarity].c; slot.classList.add('filled'); const isReady = this.player.skillCooldowns[index] <= 0; slot.classList.toggle('skill-ready', isReady); const cO = slot.querySelector('.cooldown-overlay'); if(cO) { const cP = this.player.skillCooldowns[index] / (SKILL_DATA[skill.name].cd * 1000) * 100; cO.style.height = `${Math.max(0, cP)}%`; } } else { slot.innerHTML = `<div class="cooldown-overlay"></div><div style="font-size: 9px;">빈 슬롯</div>`; slot.style.borderColor = '#666'; slot.classList.remove('filled', 'skill-ready'); const cO = slot.querySelector('.cooldown-overlay'); if(cO) cO.style.height = '0%'; } });
     }
-    performGacha(count) {
-        const cost = count === 1 ? 10 : 90; if(this.player.gachaTokens < cost) { this.createNotification('토큰이 부족합니다!', 'error'); return; }
-        this.player.gachaTokens -= cost; const results = Array.from({ length: count }, () => this.rollGacha());
-        this.inventory.push(...results); this.showGachaResult(results); this.updateUI();
-    }
-    showGachaResult(results) {
-        const container = document.getElementById('gachaResultContent'); container.innerHTML = '';
-        results.forEach((item, index) => {
-            const card = document.createElement('div'); card.className = 'gacha-card';
-            const inner = document.createElement('div'); inner.className = 'gacha-card-inner';
-            const front = document.createElement('div'); front.className = 'gacha-card-front'; front.innerHTML = '<div>?</div>';
-            const back = document.createElement('div'); back.className = 'gacha-card-back';
-            const rarityData = RARITY_DATA[item.rarity]; back.style.background = `radial-gradient(ellipse at center, ${rarityData.c} 0%, #000 100%)`;
-            back.style.color = item.rarity === 'G' ? '#000' : '#fff';
-            back.innerHTML = `<strong style="color:${rarityData.c}; text-shadow: 0 0 15px ${rarityData.c}; font-size: 14px;">${item.rarity}</strong><div style="margin: 8px 0; font-size: 12px; font-weight: bold;">${item.name}</div>${item.special ? `<div style="color: gold; font-size: 10px; margin-top: 5px;">${item.special}</div>` : ''}`;
-            inner.appendChild(front); inner.appendChild(back); card.appendChild(inner); container.appendChild(card);
-            setTimeout(() => {
-                card.classList.add('is-flipped');
-                const rarityIndex = Object.keys(RARITY_DATA).indexOf(item.rarity);
-                if(rarityIndex >= 4) {
-                    for(let i = 0; i < 30 + rarityIndex * 10; i++) { this.particles.push(new Particle(this.canvas.width/2, this.canvas.height/2, rarityData.c, Math.random() * 6 + 2, 200 + rarityIndex * 50, 1000 + rarityIndex * 200)); }
-                    if(rarityIndex >= 6) this.createNotification(`${item.rarity} 등급 ${item.name} 획득!`, 'success');
-                }
-            }, 150 + index * 200);
-        });
-    }
-    initTalentTree() {
-        const container = document.getElementById('talent-container'); container.innerHTML = '';
-        for (const categoryId in TALENT_DATA) {
-            const category = TALENT_DATA[categoryId]; const treeDiv = document.createElement('div'); treeDiv.className = 'talent-tree';
-            const nameDiv = document.createElement('div'); nameDiv.className = 'talent-tree-name'; nameDiv.textContent = category.name; treeDiv.appendChild(nameDiv);
-            const nodesContainer = document.createElement('div'); nodesContainer.className = 'talent-nodes-container';
-            category.talents.forEach((talent, index) => {
-                const wrapper = document.createElement('div'); wrapper.className = 'talent-node-wrapper';
-                const node = document.createElement('div'); node.className = 'talent-node';
-                node.innerHTML = `<div class="talent-node-name">${talent.name}</div><div class="talent-node-desc">${talent.desc}</div><div class="talent-node-cost">비용: ${talent.cost}</div>`;
-                const isUnlocked = this.talents[talent.id]; const canUnlock = this.canUnlockTalent(talent);
-                if (isUnlocked) node.classList.add('unlocked');
-                else if (canUnlock) { node.classList.add('available'); node.addEventListener('click', () => this.unlockTalent(talent)); }
-                wrapper.appendChild(node);
-                if(index < category.talents.length - 1) { const connector = document.createElement('div'); connector.className = 'talent-connector'; wrapper.appendChild(connector); }
-                nodesContainer.appendChild(wrapper);
-            });
-            treeDiv.appendChild(nodesContainer); container.appendChild(treeDiv);
-        }
-    }
-    canUnlockTalent(talent) {
-        if (this.talents[talent.id]) return false;
-        if (this.talentPoints < talent.cost) return false;
-        if (talent.prereq && !this.talents[talent.prereq]) return false;
-        return true;
-    }
-    unlockTalent(talent) {
-        if (!this.canUnlockTalent(talent)) return;
-        this.talentPoints -= talent.cost; this.talents[talent.id] = true;
-        this.createNotification(`${talent.name} 특성을 획득했습니다!`, 'success');
-        this.updateStats(); this.initTalentTree();
-    }
-    createNotification(message, type = 'info') { const area = document.getElementById('notification-area'); const notif = document.createElement('div'); notif.className = 'notification'; notif.textContent = message; const colors = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' }; notif.style.borderColor = colors[type] || colors.info; notif.style.backgroundColor = (colors[type] || colors.info).replace(')', ', 0.9)').replace('rgb', 'rgba'); area.appendChild(notif); setTimeout(() => { if(notif.parentNode) notif.parentNode.removeChild(notif); }, 4000); }
-    equipItem(item) {
-        if (this.skillEquipSlot !== -1 && item.type === 'skill') { this.equipSkill(item); return; }
-        if(item.type === 'weapon') this.equipment.weapon = item;
-        else if(item.type === 'armor') this.equipment.armor = item;
-        this.updateStats(); this.updateInventoryDisplay(); this.createNotification(`${item.name} 장착 완료!`, 'success');
-    }
-    filterInventory(filter) { this.inventoryFilter = filter; this.updateInventoryDisplay(); }
-    createFloatingText(text, x, y, color = '255,255,255', size = 20) { this.floatingTexts.push({ text, x, y, c: color, s: size, alpha: 1, life: 2000 }); }
+    
+    performGacha(count) { const cost = count === 1 ? 10 : 90; if(this.player.gachaTokens < cost) { this.createNotification('토큰이 부족합니다!', 'error'); return; } this.player.gachaTokens -= cost; const results = Array.from({ length: count }, () => this.rollGacha()); this.inventory.push(...results); this.showGachaResult(results); this.updateUI(); }
+    showGachaResult(results) { const c = document.getElementById('gachaResultContent'); c.innerHTML = ''; results.forEach((i, idx) => { const card = document.createElement('div'); card.className = 'gacha-card'; const inner = document.createElement('div'); inner.className = 'gacha-card-inner'; const front = document.createElement('div'); front.className = 'gacha-card-front'; front.innerHTML = '<div>?</div>'; const back = document.createElement('div'); back.className = 'gacha-card-back'; const rD = RARITY_DATA[i.rarity]; back.style.background = `radial-gradient(ellipse at center, ${rD.c} 0%, #000 100%)`; back.style.color = i.rarity === 'G' ? '#000' : '#fff'; back.innerHTML = `<strong style="color:${rD.c}; text-shadow: 0 0 15px ${rD.c}; font-size: 14px;">${i.rarity}</strong><div style="margin: 8px 0; font-size: 12px; font-weight: bold;">${i.name}</div>${i.special ? `<div style="color: gold; font-size: 10px; margin-top: 5px;">${i.special}</div>` : ''}`; inner.appendChild(front); inner.appendChild(back); card.appendChild(inner); c.appendChild(card); setTimeout(() => { card.classList.add('is-flipped'); const rI = Object.keys(RARITY_DATA).indexOf(i.rarity); if(rI >= 4) { for(let j = 0; j < 30 + rI * 10; j++) { this.particles.push(new Particle(this.canvas.width/2, this.canvas.height/2, rD.c, Math.random() * 6 + 2, 200 + rI * 50, 1000 + rI * 200)); } if(rI >= 6) this.createNotification(`${i.rarity} 등급 ${i.name} 획득!`, 'success'); } }, 150 + idx * 200); }); }
+    initTalentTree() { const c = document.getElementById('talent-container'); c.innerHTML = ''; for (const cId in TALENT_DATA) { const cat = TALENT_DATA[cId]; const tD = document.createElement('div'); tD.className = 'talent-tree'; const nD = document.createElement('div'); nD.className = 'talent-tree-name'; nD.textContent = cat.name; tD.appendChild(nD); const nodesContainer = document.createElement('div'); nodesContainer.className = 'talent-nodes-container'; cat.talents.forEach((t, idx) => { const w = document.createElement('div'); w.className = 'talent-node-wrapper'; const node = document.createElement('div'); node.className = 'talent-node'; node.innerHTML = `<div class="talent-node-name">${t.name}</div><div class="talent-node-desc">${t.desc}</div><div class="talent-node-cost">비용: ${t.cost}</div>`; const iU = this.talents[t.id]; const cU = this.canUnlockTalent(t); if (iU) node.classList.add('unlocked'); else if (cU) { node.classList.add('available'); node.addEventListener('click', () => this.unlockTalent(t)); } w.appendChild(node); if(idx < cat.talents.length - 1) { const conn = document.createElement('div'); conn.className = 'talent-connector'; w.appendChild(conn); } nodesContainer.appendChild(w); }); tD.appendChild(nodesContainer); c.appendChild(tD); } }
+    canUnlockTalent(t) { if (this.talents[t.id]) return false; if (this.talentPoints < t.cost) return false; if (t.prereq && !this.talents[t.prereq]) return false; return true; }
+    unlockTalent(t) { if (!this.canUnlockTalent(t)) return; this.talentPoints -= t.cost; this.talents[t.id] = true; this.createNotification(`${t.name} 특성을 획득했습니다!`, 'success'); this.updateStats(); this.initTalentTree(); }
+    createNotification(m, t = 'info') { const a = document.getElementById('notification-area'); const n = document.createElement('div'); n.className = 'notification'; n.textContent = m; const c = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' }; n.style.borderColor = c[t] || c.info; n.style.backgroundColor = (c[t] || c.info).replace(')', ', 0.9)').replace('rgb', 'rgba'); a.appendChild(n); setTimeout(() => { if(n.parentNode) n.parentNode.removeChild(n); }, 4000); }
+    equipItem(i) { if (this.skillEquipSlot !== -1 && i.type === 'skill') { this.equipSkill(i); return; } if(i.type === 'weapon') this.equipment.weapon = i; else if(i.type === 'armor') this.equipment.armor = i; this.updateStats(); this.updateInventoryDisplay(); this.createNotification(`${i.name} 장착 완료!`, 'success'); }
+    filterInventory(f) { this.inventoryFilter = f; this.updateInventoryDisplay(); }
+    createFloatingText(t, x, y, c = '255,255,255', s = 20) { this.floatingTexts.push({ text:t, x, y, c, s, alpha: 1, life: 2000 }); }
     openModal(id) { document.getElementById('modal-backdrop').style.display = 'flex'; document.getElementById(id).style.display = 'block'; }
     closeModal(id) { document.getElementById('modal-backdrop').style.display = 'none'; document.getElementById(id).style.display = 'none'; }
-    gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); localStorage.removeItem('hackSlashGame_v23'); }
-    spawnWave() {
-        const enemyCount = Math.min(3 + Math.floor(this.currentFloor * 1.5), 15); const eliteChance = Math.min(0.1 + (this.currentFloor * 0.05), 0.4);
-        for(let i = 0; i < enemyCount; i++) { this.enemies.push(new Enemy(this, Math.random() < eliteChance)); }
-    }
-    completeFloor() {
-        this.floorCompleted = true;
-        let goldReward = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tokenReward = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0));
-        if (this.talents['greed8']) { goldReward = Math.floor(goldReward * 1.2); tokenReward = Math.floor(tokenReward * 1.2); }
-        this.player.gold += goldReward; this.player.gachaTokens += tokenReward; let bonusHtml = '';
-        if(this.currentFloor % 10 === 0) {
-            const bonusTokens = this.currentFloor * 5; this.player.gachaTokens += bonusTokens;
-            bonusHtml = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bonusTokens}</div>`;
-            this.createNotification(`${this.currentFloor}층 달성 보너스! +${bonusTokens} 토큰!`, 'success');
-        }
-        document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${goldReward.toLocaleString()}</p><p>토큰 +${tokenReward}</p>${bonusHtml}`;
-        this.openModal('floorInfo');
-    }
+    gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); localStorage.removeItem('hackSlashGame_v25'); }
+    spawnWave() { const eC = Math.min(3 + Math.floor(this.currentFloor * 1.5), 15); const elC = Math.min(0.1 + (this.currentFloor * 0.05), 0.4); for(let i = 0; i < eC; i++) { this.enemies.push(new Enemy(this, Math.random() < elC)); } }
+    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 5; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); }
     nextFloor() { this.currentFloor++; this.currentWave = 1; this.floorCompleted = false; this.closeModal('floorInfo'); this.spawnWave(); }
-    updateInventoryDisplay() {
-        const list = document.getElementById('inventoryList'); list.innerHTML = '';
-        const filtered = this.inventory.filter(i => this.inventoryFilter === 'all' || i.type === this.inventoryFilter);
-        filtered.sort((a, b) => Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity));
-        filtered.forEach(item => {
-            const div = document.createElement('div'); div.className = `item ${item.rarity}`;
-            const rarityColor = RARITY_DATA[item.rarity].c; div.style.borderLeftColor = rarityColor;
-            div.onclick = () => this.equipItem(item);
-            if(Object.values(this.equipment).flat().some(e => e?.id === item.id)) div.classList.add('equipped');
-            let cost = Math.floor(150 * Math.pow(2.3, item.level)); if (this.talents['greed5']) cost = Math.floor(cost * 0.8);
-            const itemDiv = document.createElement('div');
-            itemDiv.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><div><strong style="color:${rarityColor}">(${item.rarity}) ${item.name} (+${item.level})</strong><br><small>능력치: ${item.power}${item.special?' | '+item.special:''}</small></div></div>`;
-            const enhanceBtn = document.createElement('button'); enhanceBtn.className = 'button'; enhanceBtn.textContent = `강화 (${cost.toLocaleString()}G)`;
-            enhanceBtn.disabled = item.level >= 10 || this.player.gold < cost;
-            enhanceBtn.onclick = (e) => { e.stopPropagation(); this.enhanceItem(item.id); };
-            div.appendChild(itemDiv); div.appendChild(enhanceBtn); list.appendChild(div);
-        });
-    }
-    openView(panelId, filter) {
-        document.getElementById(panelId).style.display = 'block';
-        if(panelId === 'inventoryPanel') this.filterInventory(filter || 'all');
-        else if(panelId === 'talentPanel') this.initTalentTree();
-    }
-    closeView(panelId) { document.getElementById(panelId).style.display = 'none'; if(panelId === 'inventoryPanel') { this.skillEquipSlot = -1; } }
-    saveGame() {
-        const data = { p: this.player, e: this.equipment, i: this.inventory, f: this.currentFloor, c: this.pityCounter, t: this.talents, tp: this.talentPoints };
-        localStorage.setItem('hackSlashGame_v23', JSON.stringify(data));
-    }
-    loadGame() {
-        const data = localStorage.getItem('hackSlashGame_v23');
-        if(data) {
-            try {
-                const s = JSON.parse(data);
-                if (s.p) Object.assign(this.player, s.p);
-                if (s.e) this.equipment = s.e;
-                if (s.i) this.inventory = s.i;
-                if (s.t) this.talents = s.t;
-                this.currentFloor = s.f || 1; this.pityCounter = s.c || 100; this.talentPoints = s.tp || 0;
-            } catch(e) { console.error("Save Load Failed, resetting:", e); localStorage.removeItem('hackSlashGame_v23'); this.resetPlayerState(); }
-        }
-    }
+    updateInventoryDisplay() { const list = document.getElementById('inventoryList'); list.innerHTML = ''; const filtered = this.inventory.filter(i => this.inventoryFilter === 'all' || i.type === this.inventoryFilter); filtered.sort((a, b) => Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity)); filtered.forEach(item => { const div = document.createElement('div'); div.className = `item ${item.rarity}`; const rC = RARITY_DATA[item.rarity].c; div.style.borderLeftColor = rC; div.onclick = () => this.equipItem(item); if(Object.values(this.equipment).flat().some(e => e?.id === item.id)) div.classList.add('equipped'); let cost = Math.floor(150 * Math.pow(2.3, item.level)); if (this.talents['greed5']) cost = Math.floor(cost * 0.8); const iD = document.createElement('div'); iD.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><div><strong style="color:${rC}">(${item.rarity}) ${item.name} (+${item.level})</strong><br><small>능력치: ${item.power}${item.special?' | '+item.special:''}</small></div></div>`; const eB = document.createElement('button'); eB.className = 'button'; eB.textContent = `강화 (${cost.toLocaleString()}G)`; eB.disabled = item.level >= 10 || this.player.gold < cost; eB.onclick = (e) => { e.stopPropagation(); this.enhanceItem(item.id); }; div.appendChild(iD); div.appendChild(eB); list.appendChild(div); }); }
+    openView(panelId, filter) { document.getElementById(panelId).style.display = 'block'; this.pause(); if(panelId === 'inventoryPanel') this.filterInventory(filter || 'all'); else if(panelId === 'talentPanel') this.initTalentTree(); }
+    closeView(panelId) { document.getElementById(panelId).style.display = 'none'; this.resume(); if(panelId === 'inventoryPanel') { this.skillEquipSlot = -1; } }
+    saveGame() { const data = { p: this.player, e: this.equipment, i: this.inventory, f: this.currentFloor, c: this.pityCounter, t: this.talents, tp: this.talentPoints }; localStorage.setItem('hackSlashGame_v25', JSON.stringify(data)); }
+    loadGame() { const data = localStorage.getItem('hackSlashGame_v25'); if(data) { try { const s = JSON.parse(data); if (s.p) Object.assign(this.player, s.p); if (s.e) this.equipment = s.e; if (s.i) this.inventory = s.i; if (s.t) this.talents = s.t; this.currentFloor = s.f || 1; this.pityCounter = s.c || 100; this.talentPoints = s.tp || 0; } catch(e) { console.error("Save Load Failed, resetting:", e); localStorage.removeItem('hackSlashGame_v25'); this.resetPlayerState(); } } }
 }
 window.onload = () => { window.game = new Game(); };
 </script>
