@@ -210,19 +210,19 @@ const SSR_WEAPON_SPECIALS = [
 const WEAPON_DATA = {
     '맨손':  {t:'p', r:50,  d:0.8, s:2.5, p:0, e:{type:'rect',w:50,h:20,c:'rgba(255,255,255,0.4)'}},
     '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
-    '검':    {t:'s', r:140, d:2.3, s:1.0, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
+    '검':    {t:'s', r:140, d:3, s:1.5, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
     '창':    {t:'h', r:160, d:2.0, s:0.5, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)'}},
     '도끼':  {t:'m', r:130, d:2.8, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
-    '망치':  {t:'m', r:150, d:3.6, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
-    '활':    {t:'r', v:18,  d:2.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
+    '망치':  {t:'m', r:150, d:4.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
+    '활':    {t:'r', v:18,  d:3.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
     '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22'}},
     '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
     '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)'}},
     '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)'}},
-    '장궁':  {t:'r', v:22,  d:3.5, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
+    '장궁':  {t:'r', v:22,  d:5, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
     '마법총':{t:'g', r: 100, v:20,  d:0.3, s:10, p:0, life:900, e:{count:1,c:'#e74c3c'}},
-    '글레이브':{t:'s', r:180, d:1, s:0.6, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
-    '전투 낫':{t:'m', r:160, d:3.0, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
+    '글레이브':{t:'s', r:180, d:1.1, s:1, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
+    '전투 낫':{t:'m', r:160, d:4, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
 };
 
 const ARMOR_DATA = { '가죽 갑옷': {}, '사슬 갑옷': {}, '강철 갑옷': {}, '철판 흉갑': {}, '미스릴 갑옷': {}, '용비늘 갑옷': {}, '암흑 갑옷': {}, '수호신의 갑옷': {}, '광휘의 갑옷': {}, '타락한 심장의 갑주': {} };
@@ -383,7 +383,7 @@ class Game {
     resetPlayerState(){
         this.player = { 
             x: 200, y: this.canvas.height - 80 - 20, size: 20, hp: 100, maxHp: 100, defense: 0, level: 1, exp: 0, expToNext: 100,
-            gold: 1000, gachaTokens: 200, baseAttackPower: 5, attackPower: 5, critRate: 0.05, critDamage: 1.5,
+            gold: 1000, gachaTokens: 500, baseAttackPower: 5, attackPower: 5, critRate: 0.05, critDamage: 1.5,
             skillCooldowns: [0, 0, 0, 0], shieldAmount: 0, shieldDuration: 0, rageMultiplier: 1, rageDuration: 0, 
             timeWarpMultiplier: 1, timeWarpDuration: 0, invulnerable: false, invulnerableDuration: 0
         };
