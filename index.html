@@ -238,27 +238,88 @@ const RARITY_DATA = {
     EN:  {r: 0.0000020, c:'#dda0dd', p:3840.0}, G:   {r: 0.0000001, c:'#ffffff', p:7680.0}
 };
 
+function drawWeaponShapes(ctx, shape, x, y, angle, scale, color, rarity) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+
+    const rarityIndex = Object.keys(RARITY_DATA).indexOf(rarity);
+    if (rarityIndex >= 4) { // SSR+
+        ctx.shadowBlur = 15 + (rarityIndex - 4) * 3;
+        ctx.shadowColor = RARITY_DATA[rarity].c;
+    }
+
+    ctx.beginPath();
+    switch (shape) {
+        case 'sword':
+            ctx.moveTo(0, -5); ctx.lineTo(80, -5); ctx.lineTo(85, 0); ctx.lineTo(80, 5);
+            ctx.lineTo(0, 5); ctx.lineTo(0, 15); ctx.lineTo(-10, 15);
+            ctx.lineTo(-10, -15); ctx.lineTo(0, -15); ctx.closePath();
+            break;
+        case 'axe':
+            ctx.moveTo(0, 0); ctx.lineTo(30,0);
+            ctx.lineTo(30,-20); ctx.lineTo(70,-20); ctx.arcTo(80,0,70,20, 20); ctx.lineTo(30,20);
+            ctx.closePath();
+            break;
+        case 'hammer':
+            ctx.rect(30, -25, 60, 50);
+            ctx.moveTo(0,0); ctx.lineTo(30,0);
+            break;
+        case 'spear':
+            ctx.moveTo(0,0); ctx.lineTo(150, 0); ctx.lineTo(160, -8);
+            ctx.lineTo(180, 0); ctx.lineTo(160, 8); ctx.lineTo(150,0);
+            break;
+        case 'dagger':
+             ctx.moveTo(0, -4); ctx.lineTo(60, -4); ctx.lineTo(70, 0);
+             ctx.lineTo(60, 4); ctx.lineTo(0, 4); ctx.closePath();
+            break;
+        case 'arrow':
+            ctx.moveTo(0, 0); ctx.lineTo(-20, 0);
+            ctx.moveTo(0, 0); ctx.lineTo(-10, -5);
+            ctx.moveTo(0, 0); ctx.lineTo(-10, 5);
+            ctx.lineWidth = 3; ctx.strokeStyle = color; ctx.stroke();
+            if (rarityIndex >= 2) { ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(-25, -7); ctx.moveTo(-20, 0); ctx.lineTo(-25, 7); ctx.stroke(); }
+            break;
+        case 'magic_bolt':
+        case 'fireball':
+            ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            if (rarityIndex >= 3) { ctx.save(); ctx.globalAlpha = Math.random() * 0.5 + 0.3; ctx.beginPath(); ctx.arc(0, 0, 12 + rarityIndex, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+            break;
+        default:
+             ctx.rect(10, -8, 50, 16);
+    }
+    if(shape !== 'arrow') {
+        ctx.fill();
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
 const SSR_WEAPON_SPECIALS = [
     '흡혈 10%', '처치 시 폭발', '연쇄 번개', '방어력 무시 15%', '치명타 시 출혈', 
     '공격 시 공속 증가', '골드 획득량 20% 증가', '빙결 확률 5%', '화상 확률 5%', '스킬 쿨감 1초'
 ];
 
 const WEAPON_DATA = {
-    '맨손':  {t:'p', r:50,  d:0.8, s:2.5, p:0, e:{type:'rect',w:50,h:20,c:'rgba(255,255,255,0.4)'}},
-    '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)'}},
-    '검':    {t:'s', r:140, d:3, s:1.5, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)'}},
-    '창':    {t:'h', r:160, d:2.0, s:0.5, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)'}},
-    '도끼':  {t:'m', r:130, d:8.5, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)'}},
-    '망치':  {t:'m', r:150, d:9.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)'}},
-    '활':    {t:'r', v:18,  d:6.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f'}},
-    '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22'}},
-    '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6'}},
-    '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)'}},
-    '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)'}},
-    '장궁':  {t:'r', v:22,  d:10, s:0.85,p:0, life:1500, e:{c:'#3498db'}},
-    '마법총':{t:'g', r: 100, v:20,  d:0.3, s:10, p:0, life:900, e:{count:1,c:'#e74c3c'}},
-    '글레이브':{t:'s', r:180, d:1.1, s:1.5, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)'}},
-    '전투 낫':{t:'m', r:200, d:6, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)'}}
+    '맨손':  {t:'p', r:50,  d:0.8, s:2.5, p:0, e:{type:'rect',w:50,h:20,c:'rgba(255,255,255,0.4)', shape: 'fist'}},
+    '단검':  {t:'h', r:80,  d:1.1, s:3, p:0, e:{type:'rect',w:90,h:12,c:'rgba(180,180,180,0.7)', shape: 'dagger'}},
+    '검':    {t:'s', r:140, d:3, s:1.5, p:0, e:{type:'arc',c:'rgba(200,200,255,0.8)', shape: 'sword'}},
+    '창':    {t:'h', r:160, d:2.0, s:0.5, p:1, e:{type:'rect',w:170,h:15,c:'rgba(220,220,180,0.7)', shape: 'spear'}},
+    '도끼':  {t:'m', r:130, d:8.5, s:0.3, p:1, e:{type:'arc',c:'rgba(255,100,100,0.8)', shape: 'axe'}},
+    '망치':  {t:'m', r:150, d:9.5, s:0.25,p:0, e:{type:'arc',c:'rgba(150,150,150,0.8)', shape: 'hammer'}},
+    '활':    {t:'r', v:18,  d:6.0, s:1.1, p:0, life:1000, e:{c:'#f1c40f', shape: 'arrow'}},
+    '석궁':  {t:'r', v:16,  d:1.4, s:0.2, p:1, life:1200, e:{c:'#e67e22', shape: 'arrow'}},
+    '지팡이':{t:'g', v:10,  d:0.7, s:0.5, p:1, life:1500, e:{count:3,spread:0.15,c:'#9b59b6', shape: 'magic_bolt'}},
+    '철퇴':  {t:'m', r:130, d:3.3, s:0.28, p:1, e:{type:'arc',c:'rgba(192,192,192,0.8)', shape: 'hammer'}},
+    '카타르':{t:'h', r:90,  d:1.4, s:2.4, p:0, e:{type:'rect',w:100,h:15,c:'rgba(120,200,200,0.7)', shape: 'dagger'}},
+    '장궁':  {t:'r', v:22,  d:10, s:0.85,p:0, life:1500, e:{c:'#3498db', shape: 'arrow'}},
+    '마법총':{t:'g', r: 100, v:20,  d:0.3, s:10, p:0, life:900, e:{count:1,c:'#e74c3c', shape: 'magic_bolt'}},
+    '글레이브':{t:'s', r:180, d:1.1, s:1.5, p:1, e:{type:'arc',c:'rgba(46,204,113,0.8)', shape: 'spear'}},
+    '전투 낫':{t:'m', r:200, d:6, s:0.27, p:1, e:{type:'arc',c:'rgba(142,68,173,0.8)', shape: 'axe'}}
 };
 
 const ARMOR_DATA = { '가죽 갑옷': {}, '사슬 갑옷': {}, '강철 갑옷': {}, '철판 흉갑': {}, '미스릴 갑옷': {}, '용비늘 갑옷': {}, '암흑 갑옷': {}, '수호신의 갑옷': {}, '광휘의 갑옷': {}, '타락한 심장의 갑주': {} };
@@ -596,7 +657,87 @@ class MeleeEffect extends BaseEffect {
     }
     checkHits(){ this.game.enemies.forEach(e => { if(this.hit.has(e.id)) return; if(this.isColliding(e)){ this.game.dealDamage(e, this.dmg, this.w_item); this.hit.add(e.id); if(!this.w_data.p) this.isDone = true; } }); this.game.particles.push(...Array(15).fill(0).map(() => new Particle(this.p.x + this.a.r / 2, this.p.y, '#fff', Math.random() * 4 + 2, 120, 600))); }
     isColliding(e){ if(this.a.t === 'arc'){ const dx = e.x - this.a.x, dy = e.y - this.a.y; return Math.hypot(dx, dy) < this.a.r + e.size; } else if(this.a.t === 'rect'){ const rx = this.a.x + 10, ry = this.a.y - this.a.h / 2; const dx = Math.abs(e.x - rx - this.a.w / 2), dy = Math.abs(e.y - ry - this.a.h / 2); if(dx > this.a.w / 2 + e.size || dy > this.a.h / 2 + e.size) return false; if(dx <= this.a.w / 2 || dy <= this.a.h / 2) return true; return (dx - this.a.w / 2)**2 + (dy - this.a.h / 2)**2 <= e.size**2; } return false; }
-    draw(ctx){ const prog = 1 - this.life / this.maxLife; ctx.save(); ctx.fillStyle = this.w_data.e.c; ctx.globalAlpha = Math.sin(prog * Math.PI); ctx.shadowBlur = 15; ctx.shadowColor = this.w_data.e.c; ctx.translate(this.p.x, this.p.y); if(this.a.t === 'arc'){ const ang = this.startAngle + (this.endAngle - this.startAngle) * prog; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, this.a.r, this.startAngle, ang); ctx.closePath(); ctx.fill(); } else if(this.a.t === 'rect'){ ctx.fillRect(10, -this.a.h / 2, this.a.w, this.a.h); } ctx.restore(); }
+    draw(ctx){
+        const prog = 1 - this.life / this.maxLife;
+        const weaponColor = RARITY_DATA[this.w_item.rarity].c;
+        const shape = this.w_data.e.shape || 'sword';
+
+        ctx.save();
+        ctx.translate(this.p.x, this.p.y);
+
+        if (this.a.t === 'arc' || this.w_data.t === 'm' || this.w_data.t === 's') {
+            const angle = (prog * Math.PI) - (Math.PI / 2);
+            drawWeaponShapes(ctx, shape, 0, 0, angle, 1.2, weaponColor, this.w_item.rarity);
+        } else if (this.w_data.t === 'h') {
+            const xOffset = 50 * prog;
+            drawWeaponShapes(ctx, shape, xOffset, 0, 0, 1.2, weaponColor, this.w_item.rarity);
+        } else { // fist
+            ctx.globalAlpha = Math.sin(prog * Math.PI);
+            ctx.fillStyle = this.w_data.e.c;
+            ctx.fillRect(10, -this.w_data.e.h / 2, this.w_data.e.w, this.w_data.e.h);
+        }
+        ctx.restore();
+    }
+}
+
+class Projectile extends BaseEffect {
+    constructor(game, owner, item, startX, startY, vx, vy, overrideWeaponData = null, overrideDamage = null) {
+        const weaponData = overrideWeaponData || WEAPON_DATA[item.name];
+        super(game, weaponData.life || 1000);
+        this.owner = owner;
+        this.item = item;
+        this.weaponData = weaponData;
+        this.x = startX;
+        this.y = startY;
+        this.vx = vx;
+        this.vy = vy;
+        this.pierce = weaponData.p;
+        this.damage = overrideDamage || (game.player.attackPower * weaponData.d);
+        this.angle = Math.atan2(vy, vx);
+        this.rarityIndex = Object.keys(RARITY_DATA).indexOf(item.rarity);
+        this.trail = [];
+    }
+
+    update(dt) {
+        super.update(dt);
+        this.x += this.vx * (dt / 1000);
+        this.y += this.vy * (dt / 1000);
+        
+        if (this.rarityIndex >= 3) {
+            if(this.trail.length === 0 || Math.hypot(this.x - this.trail[this.trail.length - 1].x, this.y - this.trail[this.trail.length - 1].y) > 10) {
+                 this.trail.push({x: this.x, y: this.y, life: 10});
+            }
+        }
+        for(let i = this.trail.length - 1; i >= 0; i--) {
+            this.trail[i].life--;
+            if (this.trail[i].life <= 0) this.trail.splice(i, 1);
+        }
+
+        if (this.x > this.game.canvas.width + 50 || this.x < -50 || this.y > this.game.canvas.height + 50 || this.y < -50) {
+            this.isDone = true;
+        }
+    }
+
+    draw(ctx) {
+        if (this.trail.length > 1) {
+             ctx.save();
+             const rarityColor = RARITY_DATA[this.item.rarity].c;
+             ctx.strokeStyle = rarityColor;
+             ctx.lineWidth = 2 + this.rarityIndex;
+             ctx.globalAlpha = 0.4;
+             ctx.beginPath();
+             ctx.moveTo(this.trail[0].x, this.trail[0].y);
+             for(let i = 1; i < this.trail.length; i++) {
+                 ctx.lineTo(this.trail[i].x, this.trail[i].y);
+             }
+             ctx.stroke();
+             ctx.restore();
+        }
+        
+        const shape = this.weaponData.e.shape || 'magic_bolt';
+        const color = RARITY_DATA[this.item.rarity].c;
+        drawWeaponShapes(ctx, shape, this.x, this.y, this.angle, 1, color, this.item.rarity);
+    }
 }
 
 class SkillEffect extends BaseEffect {
@@ -736,7 +877,7 @@ class Game {
         });
         setInterval(() => { if(!this.isGameOver) this.saveGame(); }, 5000);
     }
-    pause() { this.timeScale = 0; document.getElementById('pauseIndicator').innerText = "PAUSED"; document.getElementById('pauseIndicator').style.display = 'block'; }
+    pause() { this.timeScale = 0; document.getElementById('pauseIndicator').innerText = ""; document.getElementById('pauseIndicator').style.display = 'block'; }
     resume() { this.timeScale = 1; document.getElementById('pauseIndicator').style.display = 'none'; }
     gameLoop(){
         this.gameLoopRunning = true; if(this.isGameOver) { this.gameLoopRunning = false; return; }
@@ -755,7 +896,7 @@ class Game {
             for(let i = this[key].length - 1; i >= 0; i--){
                 const item = this[key][i]; if(item.update) item.update(dt, this.player, dmg => this.takeDamage(dmg));
                 if(key === 'floatingTexts'){ item.life -= dt; item.alpha = Math.max(0, item.life / 2000); item.y -= 60 * (dt / 1000); if(item.life <= 0 || item.alpha <= 0) this[key].splice(i, 1); }
-                else if(item.isDone || item.life <= 0 || (key === 'projectiles' && (item.x > 1300 || item.x < 0))) { this[key].splice(i, 1); }
+                else if(item.isDone || item.life <= 0) { this[key].splice(i, 1); }
             }
         }
         if (this.activePet) this.activePet.update(dt);
@@ -784,8 +925,7 @@ class Game {
             for(let i = this.projectiles.length - 1; i >= 0; i--) {
                 const p = this.projectiles[i];
                 if(Math.hypot(p.x - e.x, p.y - e.y) < e.size){
-                    const damage = p.owner === 'pet' ? p.damage : this.player.attackPower;
-                    if(this.dealDamage(e, damage) || !p.p) {
+                    if(this.dealDamage(e, p.damage, p.item) || !p.pierce) {
                          this.projectiles.splice(i, 1);
                     }
                 }
@@ -831,7 +971,7 @@ class Game {
         const wI = this.equipment.weapon || {name: '맨손', rarity: 'N'}; const w = WEAPON_DATA[wI.name];
         let aS = this.getAttackSpeed();
         if(Date.now() - this.lastAttackTime < 1000 / aS) return; this.lastAttackTime = Date.now();
-        if(w.t === 'r' || w.t === 'g'){ const c = w.e.count || 1; const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x); for(let i = 0; i < c; i++){ const sA = angle + (i - (c - 1) / 2) * (w.e.spread || 0); this.projectiles.push({ x: this.player.x, y: this.player.y, vx: Math.cos(sA) * w.v * 30, vy: Math.sin(sA) * w.v * 30, p: w.p, c: wI ? RARITY_DATA[wI.rarity].c : '#fff', life: w.life, update(dt){ this.life -= dt; this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000); }, draw(ctx){ ctx.save(); ctx.shadowBlur = 8; ctx.shadowColor = this.c; ctx.fillStyle = this.c; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); } }); }
+        if(w.t === 'r' || w.t === 'g'){ const c = w.e.count || 1; const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x); for(let i = 0; i < c; i++){ const sA = angle + (i - (c - 1) / 2) * (w.e.spread || 0); this.projectiles.push(new Projectile(this, 'player', wI, this.player.x, this.player.y, Math.cos(sA) * w.v * 30, Math.sin(sA) * w.v * 30)); }
         } else { this.activeEffects.push(new MeleeEffect(this, wI)); }
     }
     
@@ -1529,7 +1669,7 @@ class Game {
 }
 
 const PET_DATA = {
-    '새끼용': { type: 'attack', power: 0.8, interval: 2500, projectile: { speed: 15, color: '#e74c3c' } },
+    '새끼용': { type: 'attack', power: 0.8, interval: 2500, projectile: { speed: 15, color: '#e74c3c', shape: 'fireball' } },
     '요정': { type: 'heal', power: 0.05, interval: 5000, condition: (p) => p.hp / p.maxHp < 0.7 },
     '골렘': { type: 'tank', power: 0.2, interval: 8000 },
     '위습': { type: 'buff', power: 0.15, interval: 10000, duration: 5000, buff: 'attackSpeed' },
@@ -1571,15 +1711,17 @@ class Pet {
                 const target = this.game.findClosestEnemy(this.x, this.y);
                 if (target) {
                     const angle = Math.atan2(target.y - this.y, target.x - this.x);
-                    this.game.projectiles.push({
-                        x: this.x, y: this.y,
-                        vx: Math.cos(angle) * this.data.projectile.speed * 30,
-                        vy: Math.sin(angle) * this.data.projectile.speed * 30,
-                        p: false, c: this.data.projectile.color, life: 1000,
-                        owner: 'pet', damage: p.attackPower * power,
-                        update(dt) { this.life -= dt; this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000); },
-                        draw(ctx) { ctx.save(); ctx.fillStyle = this.c; ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
-                    });
+                    const vx = Math.cos(angle) * this.data.projectile.speed * 30;
+                    const vy = Math.sin(angle) * this.data.projectile.speed * 30;
+                    const fakeItem = { name: this.item.name, rarity: this.item.rarity };
+                    const weaponData = {
+                        life: 1000,
+                        p: false,
+                        d: power,
+                        e: { shape: this.data.projectile.shape || 'fireball' }
+                    };
+                    const damage = this.game.player.attackPower * power;
+                    this.game.projectiles.push(new Projectile(this.game, 'pet', fakeItem, this.x, this.y, vx, vy, weaponData, damage));
                 }
                 break;
             case 'heal':
