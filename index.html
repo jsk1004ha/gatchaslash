@@ -97,6 +97,18 @@
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
         <div id="pauseIndicator"></div>
+        <!-- 속도 조절 UI 추가 -->
+        <div id="speedControl" style="position:absolute; right:30px; bottom:20px; z-index:30; background:rgba(0,0,0,0.7); border-radius:8px; padding:8px;">
+          <label for="speedSelect" style="color:#ffd700; font-weight:bold;">속도</label>
+          <select id="speedSelect" style="margin-left:8px; font-size:16px;">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
         <div id="ui">
             <div id="statsPanel" class="ui-panel">
                 <h3>플레이어 정보</h3>
@@ -2399,6 +2411,15 @@ class Pet {
 }
 
 window.onload = () => { window.game = new Game(); };        
+// 속도 조절 이벤트 리스너 추가
+setTimeout(() => {
+  const speedSelect = document.getElementById('speedSelect');
+  if(speedSelect) {
+    speedSelect.addEventListener('change', function() {
+      if(window.game) window.game.timeScale = parseFloat(this.value);
+    });
+  }
+}, 0);
 </script>
 </body>
 </html>
