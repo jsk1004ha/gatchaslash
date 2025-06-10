@@ -26,7 +26,7 @@
         #statsPanel { top: 20px; left: 20px; width: 300px; }
         #equipmentPanel { top: 20px; right: 20px; width: 300px; }
         #inventoryPanel, #gachaPanel, #talentPanel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-height: 85vh; display: none; z-index: 21; overflow-y: auto; }
-        #bottomUIPanel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 500px; text-align: center; pointer-events: auto; }
+        #bottomUIPanel { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 600px; text-align: center; pointer-events: auto; }
         #modal-backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; z-index: 200; align-items: center; justify-content: center;}
         .modal { text-align: center; background: var(--panel-bg); padding: 40px; border-radius: 15px; border: 3px solid; border-image-slice: 1; border-image-source: var(--border-gradient); }
         .button { background: var(--primary-color); border: 2px solid #fff; color: white; padding: 10px 18px; margin: 6px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s; font-family: 'Noto Sans KR', sans-serif; }
@@ -106,6 +106,8 @@
                 <div class="stat-row"><span>토큰:</span><span class="stat-value" id="gachaTokens">100</span></div>
                 <div class="stat-row"><span>펫 큐브:</span><span class="stat-value" id="playerPetCubes">0</span></div>
                 <div class="stat-row"><span>특성 포인트:</span><span class="stat-value" id="talentPoints">0</span></div>
+                <div class="stat-row"><span>전직 포인트:</span><span class="stat-value" id="advancementPoints">0</span></div>
+                <div class="stat-row"><span>직업:</span><span class="stat-value" id="playerJob">없음</span></div>
                 <div class="stat-row floor-display"><span>층수:</span><span><span id="currentFloor">1</span>-<span id="currentWave">1</span></span></div>
             </div>
             
@@ -142,6 +144,17 @@
                         <div style="font-size: 9px;">빈 슬롯</div>
                     </div>
                 </div>
+                <h3 style="margin-top:20px;">직업 스킬 (Q,W)</h3>
+                <div id="jobSkillSlots">
+                    <div class="skill-slot" id="jobSkillSlot0">
+                        <div class="cooldown-overlay"></div>
+                        <div style="font-size: 9px;">-</div>
+                    </div>
+                    <div class="skill-slot" id="jobSkillSlot1">
+                        <div class="cooldown-overlay"></div>
+                        <div style="font-size: 9px;">-</div>
+                    </div>
+                </div>
             </div>
             
             <div id="inventoryPanel" class="ui-panel">
@@ -168,7 +181,12 @@
             
             <div id="talentPanel" class="ui-panel">
                 <h3>특성 트리 <button id="closeTalentButton" class="button" style="float:right; padding: 4px 12px;">닫기</button></h3>
-                <p style="margin-bottom: 15px;">사용 가능한 포인트: <span class="stat-value" id="availableTalentPoints">0</span></p>
+                <p style="margin-bottom: 15px;">사용 가능한 특성 포인트: <span class="stat-value" id="availableTalentPoints">0</span></p>
+                <div id="job-advancement-container" style="display:none; margin-bottom: 20px; padding: 15px; border: 2px solid var(--warn-color); border-radius: 8px; text-align: center;">
+                    <h4>전직 가능! (사용 가능한 전직 포인트: <span id="availableAdvancementPoints">0</span>)</h4>
+                    <p>전직 포인트를 사용하여 직업을 선택하세요. 직업은 되돌릴 수 없습니다.</p>
+                    <div id="job-selection-buttons" style="margin-top:10px;"></div>
+                </div>
                 <div id="talent-container"></div>
             </div>
             
@@ -200,6 +218,7 @@
                 <button class="button" id="openInventoryButton">인벤토리</button>
                 <button class="button" id="openPetButton">펫 관리</button>
                 <button class="button" id="openSynthesisButton">장비 합성</button>
+                <button class="button" id="resetGameButton" style="background-color: var(--danger-color);">게임 초기화</button>
             </div>
         </div>
         
@@ -295,6 +314,73 @@ function drawWeaponShapes(ctx, shape, x, y, angle, scale, color, rarity) {
     if(shape !== 'arrow') {
         ctx.fill();
         ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function drawPetShapes(ctx, shape, x, y, scale, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+
+    switch (shape) {
+        case 'dragon':
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2); // head
+            ctx.moveTo(-10, -10); ctx.lineTo(-20, -20); ctx.lineTo(-15, -10); // horn 1
+            ctx.moveTo(10, -10); ctx.lineTo(20, -20); ctx.lineTo(15, -10); // horn 2
+            ctx.moveTo(-12, 0); ctx.quadraticCurveTo(-25, 10, -12, 20); // wing 1
+            ctx.moveTo(12, 0); ctx.quadraticCurveTo(25, 10, 12, 20); // wing 2
+            ctx.fill();
+            ctx.stroke();
+            break;
+        case 'fairy':
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2); // body
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-8, 0); ctx.ellipse(-15, 0, 4, 8, 0, 0, Math.PI * 2); // left wing
+            ctx.moveTo(8, 0); ctx.ellipse(15, 0, 4, 8, 0, 0, Math.PI * 2); // right wing
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fill();
+            break;
+        case 'golem':
+            ctx.fillRect(-15, -20, 30, 30); // head
+            ctx.strokeRect(-15, -20, 30, 30);
+            ctx.fillRect(-10, 10, 20, 10); // body
+            ctx.strokeRect(-10, 10, 20, 10);
+            break;
+        case 'wisp':
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+        case 'ghost':
+            ctx.beginPath();
+            ctx.moveTo(-15, 20);
+            ctx.quadraticCurveTo(-15, 0, 0, 0);
+            ctx.quadraticCurveTo(15, 0, 15, 20);
+            ctx.lineTo(10, 15);
+            ctx.lineTo(5, 20);
+            ctx.lineTo(0, 15);
+            ctx.lineTo(-5, 20);
+            ctx.lineTo(-10, 15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // eyes
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.arc(-5, 5, 2, 0, Math.PI * 2);
+            ctx.arc(5, 5, 2, 0, Math.PI * 2);
+            ctx.fill();
+            break;
     }
     ctx.restore();
 }
@@ -403,6 +489,20 @@ const TALENT_DATA = {
         {id:'spec8', name:'파멸', desc:'모든 피해량 20% 증가, 받는 피해 10% 증가', cost:6, prereq:'spec7'},
         {id:'spec9', name:'절대 영점', desc:'공격 시 5% 확률로 2초간 적을 빙결시키고 받는 피해 20% 증가', cost: 7, prereq: 'spec8'},
         {id:'spec10', name:'운명 조작', desc:'모든 확률 기반 효과 발동 확률 +5%', cost: 8, prereq: 'spec9'}
+    ]},
+    '전사': { name: '전사', job: true, talents: [
+        {id:'job_war1', name:'검기', desc:'근접 공격 적중 시 전방으로 검기 발사 (공격력 50%)', cost:2},
+        {id:'job_war2', name:'강인함', desc:'최대 체력 +25%, 공격 속도 -10%', cost:2, prereq:'job_war1'},
+        {id:'job_war3', name:'분노', desc:'치명타 피해 +50%', cost:3, prereq:'job_war2'},
+        {id:'job_war4', name:'무기 연마', desc:'검/도끼/망치 계열 무기 공격력 +30%', cost:4, prereq:'job_war3'},
+        {id:'job_war5', name:'광전사', desc:'적 처치 시 10% 확률로 광폭화 스킬 쿨타임 초기화', cost:5, prereq:'job_war4'},
+    ]},
+    '마법사': { name: '마법사', job: true, talents: [
+        {id:'job_mage1', name:'마력 증폭', desc:'모든 스킬의 공격력 +25%', cost:2},
+        {id:'job_mage2', name:'원소 연구', desc:'독, 화상 등 상태이상 피해 +30%', cost:2, prereq:'job_mage1'},
+        {id:'job_mage3', name:'마나 순환', desc:'스킬 쿨타임 20% 감소', cost:3, prereq:'job_mage2'},
+        {id:'job_mage4', name:'마력 보호막', desc:'피격 시 15% 확률로 3초간 최대체력 10% 보호막 생성', cost:4, prereq:'job_mage3'},
+        {id:'job_mage5', name:'대마법사', desc:'모든 스킬의 범위와 지속시간 +25%', cost:5, prereq:'job_mage4'},
     ]}
 };
 
@@ -601,6 +701,17 @@ const SKILL_UPGRADE_DATA = {
     }
 };
 
+const JOB_SKILL_DATA = {
+    '전사': [
+        { name: '회전격', type: 'aura', r: 150, d: 2.0, dur: 1, tick: 0.2, cd: 8, c: 'rgba(255, 80, 80, 0.5)' },
+        { name: '전장의 함성', type: 'rage', dur: 5, cd: 20, val: 0.3, name:'전장의 함성' }
+    ],
+    '마법사': [
+        { name: '원소 구체', type: 'projectile_skill', d: 1.5, cd: 6, c: 'rgba(150, 100, 255, 0.8)', v: 4, life: 2500, p: true },
+        { name: '차원 이동', type: 'teleport', range: 300, cd: 10, c: 'rgba(150, 100, 255, 0.8)' }
+    ]
+};
+
 const STATUS_EFFECTS = { POISON: 'poison', BURN: 'burn', FREEZE: 'freeze', STUN: 'stun', VULNERABLE: 'vulnerable', SLOW: 'slow' };
 
 class Particle {
@@ -629,7 +740,7 @@ class Enemy {
         }
         if (Math.abs(dx) < this.size + player.size + 10 && Date.now() - this.lastAttackTime > 1800) { this.lastAttackTime = Date.now(); dealDamageCallback(Math.floor(this.damage)); }
     }
-    updateStatusEffects(dt) { for (let [effect, data] of this.statusEffects) { data.duration -= dt; if (data.tick) { data.tick -= dt; if (data.tick <= 0) { switch(effect) { case STATUS_EFFECTS.POISON: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.02), null, true)); this.game.createFloatingText('독!', this.x, this.y - 20, '138,43,226', 16); break; case STATUS_EFFECTS.BURN: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.03), null, true)); this.game.createFloatingText('화상!', this.x, this.y - 20, '231,76,60', 16); break; } data.tick = data.tickInterval; } } if (data.duration <= 0) { this.statusEffects.delete(effect); if (effect === STATUS_EFFECTS.FREEZE) this.isFrozen = false; if (effect === STATUS_EFFECTS.STUN) this.isStunned = false; } } }
+    updateStatusEffects(dt) { for (let [effect, data] of this.statusEffects) { data.duration -= dt; if (data.tick) { data.tick -= dt; if (data.tick <= 0) { let dotDamageMultiplier = 1; if(this.game.talents['job_mage2']) { dotDamageMultiplier = 1.3; } switch(effect) { case STATUS_EFFECTS.POISON: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.02 * dotDamageMultiplier), null, true)); this.game.createFloatingText('독!', this.x, this.y - 20, '138,43,226', 16); break; case STATUS_EFFECTS.BURN: this.takeDamage(this.game.dealDamage(this, Math.floor(this.maxHp * 0.03 * dotDamageMultiplier), null, true)); this.game.createFloatingText('화상!', this.x, this.y - 20, '231,76,60', 16); break; } data.tick = data.tickInterval; } } if (data.duration <= 0) { this.statusEffects.delete(effect); if (effect === STATUS_EFFECTS.FREEZE) this.isFrozen = false; if (effect === STATUS_EFFECTS.STUN) this.isStunned = false; } } }
     applyStatusEffect(effect, duration, tickInterval = 1000, value = 0) {
         this.statusEffects.set(effect, { duration, tick: tickInterval, tickInterval, value });
         if (effect === STATUS_EFFECTS.FREEZE) this.isFrozen = true;
@@ -655,7 +766,7 @@ class MeleeEffect extends BaseEffect {
         else if (this.a.t === 'arc') { this.startAngle = -0.8; this.endAngle = 0.8; }
         this.checkHits();
     }
-    checkHits(){ this.game.enemies.forEach(e => { if(this.hit.has(e.id)) return; if(this.isColliding(e)){ this.game.dealDamage(e, this.dmg, this.w_item); this.hit.add(e.id); if(!this.w_data.p) this.isDone = true; } }); this.game.particles.push(...Array(15).fill(0).map(() => new Particle(this.p.x + this.a.r / 2, this.p.y, '#fff', Math.random() * 4 + 2, 120, 600))); }
+    checkHits(){ this.game.enemies.forEach(e => { if(this.hit.has(e.id)) return; if(this.isColliding(e)){ this.game.dealDamage(e, this.dmg, this.w_item); this.hit.add(e.id); if(this.game.talents['job_war1']) { const angle = Math.atan2(e.y - this.p.y, e.x - this.p.x); const p_item = {name: '검기', rarity: this.w_item.rarity}; const p_data = {life: 500, p: true, d: 0.5, e: {shape: 'sword'}}; const p_dmg = this.p.attackPower * 0.5; this.game.projectiles.push(new Projectile(this.game, 'player', p_item, this.p.x, this.p.y, Math.cos(angle) * 15 * 30, Math.sin(angle) * 15 * 30, p_data, p_dmg)); } if(!this.w_data.p) this.isDone = true; } }); this.game.particles.push(...Array(15).fill(0).map(() => new Particle(this.p.x + this.a.r / 2, this.p.y, '#fff', Math.random() * 4 + 2, 120, 600))); }
     isColliding(e){ if(this.a.t === 'arc'){ const dx = e.x - this.a.x, dy = e.y - this.a.y; return Math.hypot(dx, dy) < this.a.r + e.size; } else if(this.a.t === 'rect'){ const rx = this.a.x + 10, ry = this.a.y - this.a.h / 2; const dx = Math.abs(e.x - rx - this.a.w / 2), dy = Math.abs(e.y - ry - this.a.h / 2); if(dx > this.a.w / 2 + e.size || dy > this.a.h / 2 + e.size) return false; if(dx <= this.a.w / 2 || dy <= this.a.h / 2) return true; return (dx - this.a.w / 2)**2 + (dy - this.a.h / 2)**2 <= e.size**2; } return false; }
     draw(ctx){
         const prog = 1 - this.life / this.maxLife;
@@ -696,6 +807,7 @@ class Projectile extends BaseEffect {
         this.angle = Math.atan2(vy, vx);
         this.rarityIndex = Object.keys(RARITY_DATA).indexOf(item.rarity);
         this.trail = [];
+        this.hitEnemies = new Set();
     }
 
     update(dt) {
@@ -745,10 +857,27 @@ class SkillEffect extends BaseEffect {
         super(g, s.dur ? s.dur * 1000 : 300);
         this.p = p; this.s = s; this.s_item = s_item; this.x = g.mouse.x; this.y = g.mouse.y; 
         this.dmg = this.p.attackPower * (this.s.d || 1); 
+        if (g.talents['job_mage1']) { this.dmg *= 1.25; }
         this.tick = 0; this.hit = new Set(); this.activate();
     }
     activate(){
         switch(this.s.type){
+            case 'teleport':
+                const angle_tp = Math.atan2(this.game.mouse.y - this.p.y, this.game.mouse.x - this.p.x);
+                const dist = Math.min(this.s.range, Math.hypot(this.game.mouse.x - this.p.x, this.game.mouse.y - this.p.y));
+                this.p.x += Math.cos(angle_tp) * dist;
+                this.p.x = Math.max(this.p.size, Math.min(this.game.canvas.width - this.p.size, this.p.x));
+                this.p.y = this.game.groundY - this.p.size;
+                this.game.particles.push(...Array(30).fill(0).map(() => new Particle(this.p.x, this.p.y, this.s.c, Math.random() * 4 + 2, 200, 800)));
+                break;
+            case 'projectile_skill':
+                const angle = Math.atan2(this.game.mouse.y - this.p.y, this.game.mouse.x - this.p.x);
+                const p_item = {name: this.s.name, rarity: 'L'}; // Job skills are legendary
+                const p_data = {life: this.s.life, p: this.s.p, d: this.s.d, e: {shape: 'magic_bolt'}};
+                const vx = Math.cos(angle) * this.s.v * 30;
+                const vy = Math.sin(angle) * this.s.v * 30;
+                this.game.projectiles.push(new Projectile(this.game, 'player', p_item, this.p.x, this.p.y, vx, vy, p_data, this.dmg));
+                break;
             case 'aoe':
                 const meteorCount = this.s.count || 1;
                 for (let i = 0; i < meteorCount; i++) {
@@ -850,20 +979,28 @@ class Game {
             gold: 1000, gachaTokens: 500, baseAttackPower: 5, attackPower: 5, critRate: 0.05, critDamage: 1.5,
             skillCooldowns: [0, 0, 0, 0], shieldAmount: 0, shieldDuration: 0, rageMultiplier: 1, rageDuration: 0, 
             timeWarpMultiplier: 1, timeWarpDuration: 0, invulnerable: false, invulnerableDuration: 0,
-            hots: [], petCubes: 10, attackSpeedBuff: 0, attackSpeedBuffDuration: 0
+            hots: [], petCubes: 10, attackSpeedBuff: 0, attackSpeedBuffDuration: 0,
+            advancementPoints: 0, job: null, jobSkillCooldowns: [0,0]
         };
-        this.equipment = {weapon: null, armor: null, skills: [null, null, null, null], pet: null}; 
+        this.equipment = {weapon: null, armor: null, skills: [null, null, null, null], pet: null, jobSkills: [null, null]}; 
         this.inventory = []; this.talents = {}; this.talentPoints = 0;
         this.pets = [];
         this.openPanels = [];
     }
     setupEventListeners(){
-        const kh = (e, v) => { this.keys[e.key.toLowerCase()] = v; if(v && e.key >= '1' && e.key <= '4') this.useSkill(parseInt(e.key) - 1); };
+        const kh = (e, v) => { 
+            this.keys[e.key.toLowerCase()] = v; 
+            if(v) {
+                if(e.key >= '1' && e.key <= '4') this.useSkill(parseInt(e.key) - 1);
+                if(e.key.toLowerCase() === 'q') this.useJobSkill(0);
+                if(e.key.toLowerCase() === 'w') this.useJobSkill(1);
+            }
+        };
         window.addEventListener('keydown', e => kh(e, true)); window.addEventListener('keyup', e => kh(e, false));
         this.canvas.addEventListener('mousemove', e => { const r = this.canvas.getBoundingClientRect(); this.mouse.x = e.clientX - r.left; this.mouse.y = e.clientY - r.top; });
         this.canvas.addEventListener('mousedown', () => { this.mouse.isDown = true; }); this.canvas.addEventListener('mouseup', () => { this.mouse.isDown = false; });
         this.canvas.addEventListener('click', () => this.attack());
-        const buttons = { gacha1Button: () => this.performGacha(1), gacha10Button: () => this.performGacha(10), petGacha1Button: () => this.performPetGacha(1), closeInventoryButton: () => this.closeView('inventoryPanel'), openGachaButton: () => this.openView('gachaPanel'), closeGachaButton: () => this.closeView('gachaPanel'), openTalentButton: () => this.openView('talentPanel'), closeTalentButton: () => this.closeView('talentPanel'), openInventoryButton: () => this.openView('inventoryPanel'), openPetButton: () => this.openView('petPanel'), closePetButton: () => this.closeView('petPanel'), restartButton: () => this.init(true), nextFloorButton: () => this.nextFloor(), openSynthesisButton: () => this.openView('synthesisPanel'), closeSynthesisButton: () => this.closeView('synthesisPanel'), synthesizeButton: () => this.synthesizeItems() };
+        const buttons = { gacha1Button: () => this.performGacha(1), gacha10Button: () => this.performGacha(10), petGacha1Button: () => this.performPetGacha(1), closeInventoryButton: () => this.closeView('inventoryPanel'), openGachaButton: () => this.openView('gachaPanel'), closeGachaButton: () => this.closeView('gachaPanel'), openTalentButton: () => this.openView('talentPanel'), closeTalentButton: () => this.closeView('talentPanel'), openInventoryButton: () => this.openView('inventoryPanel'), openPetButton: () => this.openView('petPanel'), closePetButton: () => this.closeView('petPanel'), restartButton: () => this.init(true), nextFloorButton: () => this.nextFloor(), openSynthesisButton: () => this.openView('synthesisPanel'), closeSynthesisButton: () => this.closeView('synthesisPanel'), synthesizeButton: () => this.synthesizeItems(), resetGameButton: () => this.gameOver() };
         Object.entries(buttons).forEach(([id, func]) => document.getElementById(id).addEventListener('click', func));
         document.getElementById('inventoryFilter').addEventListener('click', e => { if(e.target.dataset.filter) this.filterInventory(e.target.dataset.filter); });
         document.getElementById('weaponArea').addEventListener('click', () => this.openView('inventoryPanel', 'weapon'));
@@ -876,6 +1013,7 @@ class Game {
             }
         });
         setInterval(() => { if(!this.isGameOver) this.saveGame(); }, 5000);
+        window.addEventListener('beforeunload', () => this.saveGame());
     }
     pause() { this.timeScale = 0; document.getElementById('pauseIndicator').innerText = ""; document.getElementById('pauseIndicator').style.display = 'block'; }
     resume() { this.timeScale = 1; document.getElementById('pauseIndicator').style.display = 'none'; }
@@ -890,6 +1028,7 @@ class Game {
         if(this.keys['d'] || this.keys['arrowright']) this.player.x += 300 * (dt / 1000);
         this.player.x = Math.max(this.player.size, Math.min(this.canvas.width - this.player.size, this.player.x));
         this.player.skillCooldowns = this.player.skillCooldowns.map(cd => Math.max(0, cd - dt));
+        this.player.jobSkillCooldowns = this.player.jobSkillCooldowns.map(cd => Math.max(0, cd - dt));
         this.updatePlayerBuffs(dt);
         this.applyTalentEffects(dt);
         for(let key of ['activeEffects', 'projectiles', 'enemies', 'particles', 'floatingTexts']){
@@ -924,8 +1063,13 @@ class Game {
         this.enemies.forEach(e => {
             for(let i = this.projectiles.length - 1; i >= 0; i--) {
                 const p = this.projectiles[i];
+                if (p.hitEnemies.has(e.id)) continue;
+
                 if(Math.hypot(p.x - e.x, p.y - e.y) < e.size){
-                    if(this.dealDamage(e, p.damage, p.item) || !p.pierce) {
+                    this.dealDamage(e, p.damage, p.item);
+                    p.hitEnemies.add(e.id);
+
+                    if(!p.pierce) {
                          this.projectiles.splice(i, 1);
                     }
                 }
@@ -980,10 +1124,28 @@ class Game {
         const d = this.getModifiedSkillData(s);
         let cd = d.cd;
         if(this.talents['util3']) cd *= 0.9; if(this.talents['util6']) cd *= 0.85; if (this.talents['util10']) cd *= 0.85;
+        if(this.talents['job_mage3']) cd *= 0.8;
         this.player.skillCooldowns[i] = cd * 1000;
         if(this.talents['util7'] && Math.random() < 0.05) { this.player.skillCooldowns[i] = 0; this.createNotification('마력 폭주! 쿨타임 초기화!', 'success'); }
         this.activeEffects.push(new SkillEffect(this, this.player, d, s));
         this.gainSkillExp(s, 5);
+    }
+    
+    useJobSkill(i) {
+        const s = this.equipment.jobSkills[i];
+        if (!s || this.player.jobSkillCooldowns[i] > 0) return;
+        const d = s;
+        let cd = d.cd;
+        if(this.talents['util3']) cd *= 0.9;
+        if(this.talents['util6']) cd *= 0.85;
+        if(this.talents['util10']) cd *= 0.85;
+        if(this.talents['job_mage3']) cd *= 0.8;
+        this.player.jobSkillCooldowns[i] = cd * 1000;
+        if(this.talents['util7'] && Math.random() < 0.05) {
+            this.player.jobSkillCooldowns[i] = 0;
+            this.createNotification('마력 폭주! 쿨타임 초기화!', 'success');
+        }
+        this.activeEffects.push(new SkillEffect(this, this.player, d, s));
     }
     
     dealDamage(e, d, weaponItem = this.equipment.weapon, isStatusEffect = false){
@@ -1035,6 +1197,13 @@ class Game {
         if(Math.random() < tC) this.player.gachaTokens += Math.ceil(this.currentFloor / 5) + 1;
         if(this.talents['atk7']) { this.player.tempAttackBonus = (this.player.tempAttackBonus || 0) + 0.2; setTimeout(() => { this.player.tempAttackBonus -= 0.2; this.updateStats(); }, 5000); this.updateStats(); }
         if(this.talents['util9'] && Math.random() < 0.1) { this.player.skillCooldowns = this.player.skillCooldowns.map(cd => Math.max(0, cd - 1000)); }
+        if (this.talents['job_war5'] && w?.name === '광폭화' && Math.random() < 0.1) {
+            const rageSkillSlot = this.equipment.skills.findIndex(s => s && s.name === '광폭화');
+            if (rageSkillSlot > -1) {
+                this.player.skillCooldowns[rageSkillSlot] = 0;
+                this.createNotification('광폭화 쿨타임 초기화!', 'success');
+            }
+        }
     }
     
     takeDamage(d){
@@ -1050,6 +1219,12 @@ class Game {
         let dodgeChance = 0; if (this.talents['def6']) dodgeChance += 0.1; if (this.talents['spec10']) dodgeChance += 0.05;
         if(Math.random() < dodgeChance) { this.createFloatingText('회피!', this.player.x, this.player.y, '100,255,255', 24); return; }
         
+        if (this.talents['job_mage4'] && Math.random() < 0.15) {
+            this.player.shieldAmount = Math.max(this.player.shieldAmount, this.player.maxHp * 0.1);
+            this.player.shieldDuration = 3000;
+            this.createFloatingText('마력 보호막!', this.player.x, this.player.y, '#9b59b6', 20);
+        }
+
         finalDamage = Math.max(1, finalDamage);
         
         this.player.hp -= finalDamage; 
@@ -1065,6 +1240,10 @@ class Game {
         this.player.level++; this.player.exp = 0; this.player.expToNext = Math.floor(100 * (1.2**this.player.level));
         this.player.maxHp += 20; this.player.hp = this.player.maxHp; this.player.baseAttackPower += 2;
         let pG = this.player.level <= 10 ? 1 : (this.player.level <= 25 ? 2 : 3); this.talentPoints += pG;
+        if (this.player.level === 10) {
+            this.player.advancementPoints++;
+            this.createNotification('전직 가능! 특성창을 확인하세요', 'success');
+        }
         this.updateStats(); this.createNotification(`레벨 업! 특성 포인트 +${pG}`, 'success'); this.initTalentTree();
     }
     
@@ -1114,8 +1293,15 @@ class Game {
         let bH = 100 + (this.player.level - 1) * 20; 
         let bD = a_power;
 
+        // Warrior Talent
+        if (w && this.talents['job_war4']) {
+            const meleeWeapons = ['검', '도끼', '망치', '철퇴', '전투 낫'];
+            if(meleeWeapons.includes(w.name)) bA *= 1.3;
+        }
+
         if(this.talents['atk1']) bA *= 1.1; if(this.talents['atk6']) bA *= 1.25; if(this.talents['atk8']) bA *= 1.2;
         if(this.talents['def1']) bH *= 1.15; if(this.talents['def2']) bD *= 1.2; if(this.talents['def7']) { bH *= 1.3; bD *= 1.3; }
+        if(this.talents['job_war2']) bH *= 1.25;
         if(this.talents['spec6']) { bA *= 1.15; bH *= 1.15; bD *= 1.15; }
         bA *= (1 + (this.player.tempAttackBonus || 0));
         this.player.attackPower = Math.floor(bA); 
@@ -1123,7 +1309,7 @@ class Game {
         this.player.maxHp = Math.floor(bH);
         
         let critRate = 0.05; if(this.talents['atk3']) critRate += 0.05; if(this.talents['atk8']) critRate += 0.1; this.player.critRate = critRate;
-        let critDmg = 1.5; if(this.talents['atk2']) critDmg += 0.3; this.player.critDamage = critDmg;
+        let critDmg = 1.5; if(this.talents['atk2']) critDmg += 0.3; if(this.talents['job_war3']) critDmg += 0.5; this.player.critDamage = critDmg;
         
         if(this.player.hp > this.player.maxHp) this.player.hp = this.player.maxHp; 
         this.updateUI();
@@ -1136,6 +1322,12 @@ class Game {
         if (!skillItem) return null;
         let modifiedData = { ...SKILL_DATA[skillItem.name] };
         
+        // Talent mods
+        if(this.talents['job_mage5']) {
+            if(modifiedData.r) modifiedData.r *= 1.25;
+            if(modifiedData.dur) modifiedData.dur *= 1.25;
+        }
+
         const upgradeMaster = SKILL_UPGRADE_DATA[skillItem.name];
         if (upgradeMaster && skillItem.upgrades && skillItem.upgrades.length > 0) {
             skillItem.upgrades.forEach(upgradeId => {
@@ -1234,11 +1426,12 @@ class Game {
     }
     
     updateUI(){
-        const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerCritRate': `${(this.player.critRate * 100).toFixed(0)}%`, 'playerGold': this.player.gold.toLocaleString(), 'gachaTokens': this.player.gachaTokens, 'playerPetCubes': this.player.petCubes, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
+        const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerCritRate': `${(this.player.critRate * 100).toFixed(0)}%`, 'playerGold': this.player.gold.toLocaleString(), 'gachaTokens': this.player.gachaTokens, 'playerPetCubes': this.player.petCubes, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'advancementPoints': this.player.advancementPoints, 'playerJob': this.player.job || '없음', 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
         Object.entries(statMappings).forEach(([id, val]) => { const el = document.getElementById(id); if(el) el.textContent = val; });
         document.getElementById('hpBar').style.width = `${Math.max(0, this.player.hp / this.player.maxHp * 100)}%`; document.getElementById('expBar').style.width = `${this.player.exp / this.player.expToNext * 100}%`;
         const bS = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2; let fS = bS * this.player.timeWarpMultiplier * (1 + this.player.attackSpeedBuff);
         if(this.talents['util1']) fS *= 1.1; if(this.talents['util6']) fS *= 1.15;
+        if(this.talents['job_war2']) fS *= 0.9;
         document.getElementById('playerAttackSpeed').textContent = fS.toFixed(1);
         ['weapon', 'armor', 'pet'].forEach(type => {
             const i = this.equipment[type];
@@ -1258,6 +1451,26 @@ class Game {
             }
         });
         this.equipment.skills.forEach((skill, index) => { const slot = document.getElementById(`skillSlot${index}`); if(skill) { slot.innerHTML = `<div style="font-size: 10px; margin-top: 2px;"><span style="color:${RARITY_DATA[skill.rarity].c}">(${skill.rarity})</span><br>${skill.name}</div><div class="cooldown-overlay"></div>`; slot.style.borderColor = RARITY_DATA[skill.rarity].c; slot.classList.add('filled'); const isReady = this.player.skillCooldowns[index] <= 0; slot.classList.toggle('skill-ready', isReady); const cO = slot.querySelector('.cooldown-overlay'); if(cO) { const cP = this.player.skillCooldowns[index] / (this.getModifiedSkillData(skill).cd * 1000) * 100; cO.style.height = `${Math.max(0, cP)}%`; } } else { slot.innerHTML = `<div class="cooldown-overlay"></div><div style="font-size: 9px;">빈 슬롯</div>`; slot.style.borderColor = '#666'; slot.classList.remove('filled', 'skill-ready'); const cO = slot.querySelector('.cooldown-overlay'); if(cO) cO.style.height = '0%'; } });
+        this.equipment.jobSkills.forEach((skill, index) => {
+            const slot = document.getElementById(`jobSkillSlot${index}`);
+            if(skill) {
+                slot.innerHTML = `<div style="font-size: 10px; margin-top: 2px;">${skill.name}</div><div class="cooldown-overlay"></div>`;
+                slot.style.borderColor = '#e67e22';
+                slot.classList.add('filled');
+                const isReady = this.player.jobSkillCooldowns[index] <= 0;
+                slot.classList.toggle('skill-ready', isReady);
+                const cO = slot.querySelector('.cooldown-overlay');
+                if(cO) {
+                    const cP = this.player.jobSkillCooldowns[index] / (skill.cd * 1000) * 100;
+                    cO.style.height = `${Math.max(0, cP)}%`;
+                }
+            } else {
+                slot.innerHTML = `<div class="cooldown-overlay"></div><div style="font-size: 9px;">-</div>`;
+                slot.style.borderColor = '#666';
+                slot.classList.remove('filled', 'skill-ready');
+                const cO = slot.querySelector('.cooldown-overlay'); if(cO) cO.style.height = '0%';
+            }
+        });
     }
     
     performGacha(count) { const cost = count === 1 ? 10 : 90; if(this.player.gachaTokens < cost) { this.createNotification('토큰이 부족합니다!', 'error'); return; } this.player.gachaTokens -= cost; const results = Array.from({ length: count }, () => this.rollGacha()); this.inventory.push(...results); this.showGachaResult(results); this.updateUI(); }
@@ -1288,7 +1501,45 @@ class Game {
         this.updatePetPanelDisplay();
     }
     
-    initTalentTree() { const c = document.getElementById('talent-container'); c.innerHTML = ''; for (const cId in TALENT_DATA) { const cat = TALENT_DATA[cId]; const tD = document.createElement('div'); tD.className = 'talent-tree'; const nD = document.createElement('div'); nD.className = 'talent-tree-name'; nD.textContent = cat.name; tD.appendChild(nD); const nodesContainer = document.createElement('div'); nodesContainer.className = 'talent-nodes-container'; cat.talents.forEach((t, idx) => { const w = document.createElement('div'); w.className = 'talent-node-wrapper'; const node = document.createElement('div'); node.className = 'talent-node'; node.innerHTML = `<div class="talent-node-name">${t.name}</div><div class="talent-node-desc">${t.desc}</div><div class="talent-node-cost">비용: ${t.cost}</div>`; const iU = this.talents[t.id]; const cU = this.canUnlockTalent(t); if (iU) node.classList.add('unlocked'); else if (cU) { node.classList.add('available'); node.addEventListener('click', () => this.unlockTalent(t)); } w.appendChild(node); if(idx < cat.talents.length - 1) { const conn = document.createElement('div'); conn.className = 'talent-connector'; w.appendChild(conn); } nodesContainer.appendChild(w); }); tD.appendChild(nodesContainer); c.appendChild(tD); } }
+    initTalentTree() {
+        const advContainer = document.getElementById('job-advancement-container');
+        const talentContainer = document.getElementById('talent-container');
+        talentContainer.innerHTML = '';
+        
+        if (this.player.advancementPoints > 0 && !this.player.job) {
+            advContainer.style.display = 'block';
+            document.getElementById('availableAdvancementPoints').textContent = this.player.advancementPoints;
+            const buttonsContainer = document.getElementById('job-selection-buttons');
+            buttonsContainer.innerHTML = '';
+            
+            Object.values(TALENT_DATA).filter(c => c.job).forEach(jobCat => {
+                const btn = document.createElement('button');
+                btn.className = 'button';
+                btn.textContent = `${jobCat.name}로 전직`;
+                btn.onclick = () => this.selectJob(jobCat.name);
+                buttonsContainer.appendChild(btn);
+            });
+
+        } else {
+            advContainer.style.display = 'none';
+        }
+
+        for (const cId in TALENT_DATA) { 
+            const cat = TALENT_DATA[cId];
+            if (cat.job && this.player.job !== cat.name) continue;
+
+            const tD = document.createElement('div');
+            tD.className = 'talent-tree'; 
+            const nD = document.createElement('div'); 
+            nD.className = 'talent-tree-name'; 
+            nD.textContent = cat.name; 
+            if(cat.job) nD.style.color = '#e67e22';
+            tD.appendChild(nD); 
+            const nodesContainer = document.createElement('div'); 
+            nodesContainer.className = 'talent-nodes-container'; 
+            cat.talents.forEach((t, idx) => { const w = document.createElement('div'); w.className = 'talent-node-wrapper'; const node = document.createElement('div'); node.className = 'talent-node'; node.innerHTML = `<div class="talent-node-name">${t.name}</div><div class="talent-node-desc">${t.desc}</div><div class="talent-node-cost">비용: ${t.cost}</div>`; const iU = this.talents[t.id]; const cU = this.canUnlockTalent(t); if (iU) node.classList.add('unlocked'); else if (cU) { node.classList.add('available'); node.addEventListener('click', () => this.unlockTalent(t)); } w.appendChild(node); if(idx < cat.talents.length - 1) { const conn = document.createElement('div'); conn.className = 'talent-connector'; w.appendChild(conn); } nodesContainer.appendChild(w); }); tD.appendChild(nodesContainer); talentContainer.appendChild(tD); 
+        } 
+    }
     canUnlockTalent(t) { if (this.talents[t.id]) return false; if (this.talentPoints < t.cost) return false; if (t.prereq && !this.talents[t.prereq]) return false; return true; }
     unlockTalent(t) { if (!this.canUnlockTalent(t)) return; this.talentPoints -= t.cost; this.talents[t.id] = true; this.createNotification(`${t.name} 특성을 획득했습니다!`, 'success'); this.updateStats(); this.initTalentTree(); }
     createNotification(m, t = 'info') { const a = document.getElementById('notification-area'); const n = document.createElement('div'); n.className = 'notification'; n.textContent = m; const c = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' }; n.style.borderColor = c[t] || c.info; n.style.backgroundColor = (c[t] || c.info).replace(')', ', 0.9)').replace('rgb', 'rgba'); a.appendChild(n); setTimeout(() => { if(n.parentNode) n.parentNode.removeChild(n); }, 4000); }
@@ -1387,8 +1638,77 @@ class Game {
             }
         } 
     }
-    saveGame() { const data = { p: this.player, e: this.equipment, i: this.inventory, f: this.currentFloor, c: this.pityCounter, t: this.talents, tp: this.talentPoints, pets: this.pets }; localStorage.setItem('hackSlashGame_v25', JSON.stringify(data)); }
-    loadGame() { const data = localStorage.getItem('hackSlashGame_v25'); if(data) { try { const s = JSON.parse(data); if (s.p) Object.assign(this.player, s.p); if (s.e) { this.equipment = s.e; Object.values(this.equipment).forEach(item => { if (item && (item.type === 'weapon' || item.type === 'armor') && item.star === undefined) { item.star = 0; } }); if(this.equipment.pet) { this.activePet = new Pet(this, this.equipment.pet); } } if (s.i) { this.inventory = s.i; this.inventory.forEach(item => { if ((item.type === 'weapon' || item.type === 'armor') && item.star === undefined) { item.star = 0; } }); } if (s.t) this.talents = s.t; this.currentFloor = s.f || 1; this.pityCounter = s.c || 100; this.talentPoints = s.tp || 0; this.pets = s.pets || []; } catch(e) { console.error("Save Load Failed, resetting:", e); localStorage.removeItem('hackSlashGame_v25'); this.resetPlayerState(); } } }
+    saveGame() { const data = { p: this.player, e: this.equipment, i: this.inventory, f: this.currentFloor, w: this.currentWave, c: this.pityCounter, t: this.talents, tp: this.talentPoints, pets: this.pets, ap: this.player.advancementPoints, job: this.player.job }; localStorage.setItem('hackSlashGame_v25', JSON.stringify(data)); }
+    loadGame() {
+        const data = localStorage.getItem('hackSlashGame_v25');
+        if(data) {
+            try {
+                const s = JSON.parse(data);
+                if (s.p) Object.assign(this.player, s.p);
+
+                // Sanitize inventory data
+                if (s.i) {
+                    this.inventory = s.i.filter(item => {
+                        if (!item || !item.type || !item.name) return false;
+                        switch (item.type) {
+                            case 'weapon': return WEAPON_DATA[item.name];
+                            case 'armor':  return ARMOR_DATA[item.name];
+                            case 'skill':  return SKILL_DATA[item.name];
+                            case 'pet':    return PET_DATA[item.name];
+                            default:       return false;
+                        }
+                    });
+                     this.inventory.forEach(item => { if ((item.type === 'weapon' || item.type === 'armor') && item.star === undefined) { item.star = 0; } });
+                }
+
+                // Sanitize equipment data
+                if (s.e) { 
+                    this.equipment = s.e;
+                    if (this.equipment.weapon && !WEAPON_DATA[this.equipment.weapon.name]) {
+                        this.equipment.weapon = null;
+                    }
+                    if (this.equipment.armor && !ARMOR_DATA[this.equipment.armor.name]) {
+                        this.equipment.armor = null;
+                    }
+                    if (this.equipment.skills) {
+                        this.equipment.skills = this.equipment.skills.map(skill => 
+                            (skill && SKILL_DATA[skill.name]) ? skill : null
+                        );
+                    } else {
+                        this.equipment.skills = [null, null, null, null];
+                    }
+                     if (this.equipment.pet && PET_DATA[this.equipment.pet.name]) {
+                        this.activePet = new Pet(this, this.equipment.pet);
+                    } else {
+                        this.equipment.pet = null;
+                    }
+                } else {
+                     this.equipment = {weapon: null, armor: null, skills: [null, null, null, null], pet: null, jobSkills: [null, null]}; 
+                }
+                
+                if (s.t) this.talents = s.t;
+                this.currentFloor = s.f || 1;
+                this.currentWave = s.w || 1;
+                this.pityCounter = s.c || 100;
+                this.talentPoints = s.tp || 0;
+                this.pets = (s.pets || []).filter(pet => pet && PET_DATA[pet.name]);
+                this.player.advancementPoints = s.ap || 0;
+                this.player.job = s.job || null;
+                
+                // Set job skills after loading job
+                if(this.player.job && JOB_SKILL_DATA[this.player.job]) {
+                    this.equipment.jobSkills = JOB_SKILL_DATA[this.player.job];
+                } else {
+                    this.equipment.jobSkills = [null, null];
+                }
+                
+            } catch(e) {
+                console.error("Save Load Failed, resetting:", e);
+                localStorage.removeItem('hackSlashGame_v25');
+                this.resetPlayerState();
+            }
+        }
+    }
     findClosestEnemy(x, y) {
         let closest = null;
         let minDistance = Infinity;
@@ -1497,6 +1817,7 @@ class Game {
         // 특성
         if(this.talents['util1']) speed *= 1.1;
         if(this.talents['util6']) speed *= 1.15;
+        if(this.talents['job_war2']) speed *= 0.9;
 
         // 스킬 업그레이드 효과: 광폭화 (피의 계약)
         if (this.player.rageDuration > 0) {
@@ -1666,14 +1987,27 @@ class Game {
         this.updateStats();
         this.updateInventoryDisplay();
     }
+
+    selectJob(jobName) {
+        if (this.player.advancementPoints > 0 && !this.player.job) {
+            this.player.job = jobName;
+            this.player.advancementPoints--;
+            this.createNotification(`${jobName}으로 전직했습니다!`, 'success');
+            if (JOB_SKILL_DATA[jobName]) {
+                this.equipment.jobSkills = JOB_SKILL_DATA[jobName];
+            }
+            this.initTalentTree();
+            this.updateUI();
+        }
+    }
 }
 
 const PET_DATA = {
-    '새끼용': { type: 'attack', power: 0.8, interval: 2500, projectile: { speed: 15, color: '#e74c3c', shape: 'fireball' } },
-    '요정': { type: 'heal', power: 0.05, interval: 5000, condition: (p) => p.hp / p.maxHp < 0.7 },
-    '골렘': { type: 'tank', power: 0.2, interval: 8000 },
-    '위습': { type: 'buff', power: 0.15, interval: 10000, duration: 5000, buff: 'attackSpeed' },
-    '유령': { type: 'debuff', power: 0.1, interval: 6000, radius: 150, debuff: 'slow' }
+    '새끼용': { type: 'attack', power: 0.8, interval: 2500, projectile: { speed: 15, color: '#e74c3c', shape: 'fireball' }, shape: 'dragon', color: '#e74c3c' },
+    '요정': { type: 'heal', power: 0.05, interval: 5000, condition: (p) => p.hp / p.maxHp < 0.7, shape: 'fairy', color: '#ff9ff3' },
+    '골렘': { type: 'tank', power: 0.2, interval: 8000, shape: 'golem', color: '#7f8c8d' },
+    '위습': { type: 'buff', power: 0.15, interval: 10000, duration: 5000, buff: 'attackSpeed', shape: 'wisp', color: '#f1c40f' },
+    '유령': { type: 'debuff', power: 0.1, interval: 6000, radius: 150, debuff: 'slow', shape: 'ghost', color: '#ecf0f1' }
 };
 
 class Pet {
@@ -1757,21 +2091,12 @@ class Pet {
 
     draw(ctx) {
         ctx.save();
-        ctx.fillStyle = PET_DATA[this.item.name].projectile?.color || '#fff';
-        ctx.beginPath();
-        if (this.item.name === '골렘') {
-             ctx.fillRect(this.x - 10, this.y - 10, 20, 20);
-        } else {
-             ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
-        }
-        ctx.fill();
-        ctx.strokeStyle = '#000';
-        ctx.stroke();
+        drawPetShapes(ctx, this.data.shape, this.x, this.y, 1, this.data.color);
         ctx.restore();
     }
 }
 
-window.onload = () => { window.game = new Game(); };
+window.onload = () => { window.game = new Game(); };        
 </script>
 </body>
 </html>
