@@ -24,7 +24,7 @@
         #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none; }
         .ui-panel { position: absolute; background: var(--panel-bg); border: 3px solid; border-image-slice: 1; border-image-source: var(--border-gradient); padding: 15px; pointer-events: auto; backdrop-filter: blur(10px); font-size: 14px; border-radius: 8px; }
         #statsPanel { top: 20px; left: 20px; width: 300px; }
-        #equipmentPanel { top: 20px; right: 20px; width: 300px; }
+        #equipmentPanel { top: 20px; right: 20px; width: 300px; max-height: calc(100% - 40px); overflow-y: auto; }
         #inventoryPanel, #gachaPanel, #talentPanel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-height: 85vh; display: none; z-index: 21; overflow-y: auto; }
         #bottomUIPanel { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 600px; text-align: center; pointer-events: auto; }
         #modal-backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; z-index: 200; align-items: center; justify-content: center;}
@@ -60,7 +60,9 @@
         .gacha-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s; transform-style: preserve-3d; }
         .gacha-card.is-flipped .gacha-card-inner { transform: rotateY(180deg); }
         .gacha-card-front, .gacha-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px; border: 3px solid #ffd700; }
-        .gacha-card-front { background: linear-gradient(45deg, #6a82fb, #fc5c7d); }
+        .gacha-card-front { background: linear-gradient(45deg, #222, #444); box-shadow: 0 0 10px #000; transition: box-shadow 0.3s; }
+        .gacha-card-front.glow-ssr { box-shadow: 0 0 25px #ffd700, 0 0 10px #ffd700 inset; }
+        .gacha-card-front.glow-m { box-shadow: 0 0 25px #9b59b6, 0 0 10px #9b59b6 inset; }
         .gacha-card-back { transform: rotateY(180deg); }
         #talentPanel { width: 1100px; }
         #talent-container { display: flex; flex-direction: column; gap: 15px; }
@@ -84,6 +86,11 @@
         .freeze { background: #3498db; }
         .stun { background: #f39c12; }
         #pauseIndicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: #f1c40f; text-shadow: 0 0 20px #f1c40f; z-index: 15; display: none; }
+        
+        *::-webkit-scrollbar { width: 8px; }
+        *::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb:hover { background: #5fa8e3; }
     </style>
 </head>
 <body>
@@ -172,6 +179,9 @@
                 <h3>갸챠 <button id="closeGachaButton" class="button" style="float:right; padding: 4px 12px;">닫기</button></h3>
                 <div style="margin-bottom: 15px;">천장 카운터 (SSR+): <span class="stat-value" id="pityCounter">100</span></div>
                 <div id="gachaResultContent"></div>
+                <div id="gachaControls" style="margin-top: 20px; text-align: center; display: none;">
+                    <button class="button" id="flipAllGachaButton">모두 뒤집기</button>
+                </div>
                 <div style="margin-top: 20px;">
                     <button class="button" id="gacha1Button">1회 뽑기 (10토큰)</button>
                     <button class="button" id="gacha10Button">10회 뽑기 (90토큰)</button>
@@ -1000,8 +1010,34 @@ class Game {
         this.canvas.addEventListener('mousemove', e => { const r = this.canvas.getBoundingClientRect(); this.mouse.x = e.clientX - r.left; this.mouse.y = e.clientY - r.top; });
         this.canvas.addEventListener('mousedown', () => { this.mouse.isDown = true; }); this.canvas.addEventListener('mouseup', () => { this.mouse.isDown = false; });
         this.canvas.addEventListener('click', () => this.attack());
-        const buttons = { gacha1Button: () => this.performGacha(1), gacha10Button: () => this.performGacha(10), petGacha1Button: () => this.performPetGacha(1), closeInventoryButton: () => this.closeView('inventoryPanel'), openGachaButton: () => this.openView('gachaPanel'), closeGachaButton: () => this.closeView('gachaPanel'), openTalentButton: () => this.openView('talentPanel'), closeTalentButton: () => this.closeView('talentPanel'), openInventoryButton: () => this.openView('inventoryPanel'), openPetButton: () => this.openView('petPanel'), closePetButton: () => this.closeView('petPanel'), restartButton: () => this.init(true), nextFloorButton: () => this.nextFloor(), openSynthesisButton: () => this.openView('synthesisPanel'), closeSynthesisButton: () => this.closeView('synthesisPanel'), synthesizeButton: () => this.synthesizeItems(), resetGameButton: () => this.gameOver() };
-        Object.entries(buttons).forEach(([id, func]) => document.getElementById(id).addEventListener('click', func));
+        const buttons = { 
+            gacha1Button: () => this.performGacha(1), 
+            gacha10Button: () => this.performGacha(10), 
+            petGacha1Button: () => this.performPetGacha(1), 
+            closeInventoryButton: () => this.closeView('inventoryPanel'), 
+            openGachaButton: () => this.openView('gachaPanel'), 
+            closeGachaButton: () => this.closeView('gachaPanel'), 
+            openTalentButton: () => this.openView('talentPanel'), 
+            closeTalentButton: () => this.closeView('talentPanel'), 
+            openInventoryButton: () => this.openView('inventoryPanel'), 
+            openPetButton: () => this.openView('petPanel'), 
+            closePetButton: () => this.closeView('petPanel'), 
+            restartButton: () => this.init(true), 
+            nextFloorButton: () => this.nextFloor(), 
+            openSynthesisButton: () => this.openView('synthesisPanel'), 
+            closeSynthesisButton: () => this.closeView('synthesisPanel'), 
+            synthesizeButton: () => this.synthesizeItems(), 
+            resetGameButton: () => this.gameOver(),
+            flipAllGachaButton: () => {
+                document.querySelectorAll('#gachaResultContent .gacha-card:not(.is-flipped)').forEach((card, index) => {
+                    setTimeout(() => card.click(), index * 100);
+                });
+            }
+        };
+        Object.entries(buttons).forEach(([id, func]) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', func);
+        });
         document.getElementById('inventoryFilter').addEventListener('click', e => { if(e.target.dataset.filter) this.filterInventory(e.target.dataset.filter); });
         document.getElementById('weaponArea').addEventListener('click', () => this.openView('inventoryPanel', 'weapon'));
         document.getElementById('armorArea').addEventListener('click', () => this.openView('inventoryPanel', 'armor'));
@@ -1474,7 +1510,69 @@ class Game {
     }
     
     performGacha(count) { const cost = count === 1 ? 10 : 90; if(this.player.gachaTokens < cost) { this.createNotification('토큰이 부족합니다!', 'error'); return; } this.player.gachaTokens -= cost; const results = Array.from({ length: count }, () => this.rollGacha()); this.inventory.push(...results); this.showGachaResult(results); this.updateUI(); }
-    showGachaResult(results) { const c = document.getElementById('gachaResultContent'); c.innerHTML = ''; results.forEach((i, idx) => { const card = document.createElement('div'); card.className = 'gacha-card'; const inner = document.createElement('div'); inner.className = 'gacha-card-inner'; const front = document.createElement('div'); front.className = 'gacha-card-front'; front.innerHTML = '<div>?</div>'; const back = document.createElement('div'); back.className = 'gacha-card-back'; const rD = RARITY_DATA[i.rarity]; back.style.background = `radial-gradient(ellipse at center, ${rD.c} 0%, #000 100%)`; back.style.color = i.rarity === 'G' ? '#000' : '#fff'; back.innerHTML = `<strong style="color:${rD.c}; text-shadow: 0 0 15px ${rD.c}; font-size: 14px;">${i.rarity}</strong><div style="margin: 8px 0; font-size: 12px; font-weight: bold;">${i.name}</div>${i.special ? `<div style="color: gold; font-size: 10px; margin-top: 5px;">${i.special}</div>` : ''}`; inner.appendChild(front); inner.appendChild(back); card.appendChild(inner); c.appendChild(card); setTimeout(() => { card.classList.add('is-flipped'); const rI = Object.keys(RARITY_DATA).indexOf(i.rarity); if(rI >= 4) { for(let j = 0; j < 30 + rI * 10; j++) { this.particles.push(new Particle(this.canvas.width/2, this.canvas.height/2, rD.c, Math.random() * 6 + 2, 200 + rI * 50, 1000 + rI * 200)); } if(rI >= 6) this.createNotification(`${i.rarity} 등급 ${i.name} 획득!`, 'success'); } }, 150 + idx * 200); }); }
+    showGachaResult(results) {
+        const c = document.getElementById('gachaResultContent');
+        c.innerHTML = '';
+        const gachaControls = document.getElementById('gachaControls');
+        gachaControls.style.display = 'none';
+
+        if (!results || results.length === 0) return;
+
+        results.forEach((i) => {
+            const card = document.createElement('div');
+            card.className = 'gacha-card';
+            const inner = document.createElement('div');
+            inner.className = 'gacha-card-inner';
+            
+            const front = document.createElement('div');
+            front.className = 'gacha-card-front';
+            front.innerHTML = '<div>?</div>';
+
+            const rarities = Object.keys(RARITY_DATA);
+            const rI = rarities.indexOf(i.rarity);
+            const mIndex = rarities.indexOf('M');
+            const ssrIndex = rarities.indexOf('SSR');
+
+            if (rI >= mIndex) {
+                front.classList.add('glow-m');
+            } else if (rI >= ssrIndex) {
+                front.classList.add('glow-ssr');
+            }
+            
+            const back = document.createElement('div');
+            back.className = 'gacha-card-back';
+            const rD = RARITY_DATA[i.rarity];
+            back.style.background = `radial-gradient(ellipse at center, ${rD.c} 0%, #000 100%)`;
+            back.style.color = i.rarity === 'G' ? '#000' : '#fff';
+            let specialText = '';
+            if (i.type === 'weapon' && i.special) {
+                specialText = `<div style="color: gold; font-size: 10px; margin-top: 5px;">${i.special}</div>`;
+            }
+            back.innerHTML = `<strong style="color:${rD.c}; text-shadow: 0 0 15px ${rD.c}; font-size: 14px;">${i.rarity}</strong><div style="margin: 8px 0; font-size: 12px; font-weight: bold;">${i.name}</div>${specialText}`;
+            
+            inner.appendChild(front);
+            inner.appendChild(back);
+            card.appendChild(inner);
+            c.appendChild(card);
+            
+            const flipCard = () => {
+                if (card.classList.contains('is-flipped')) return;
+                card.classList.add('is-flipped');
+                if (rI >= ssrIndex) { // Particles for SSR+
+                    for(let j = 0; j < 30 + rI * 10; j++) {
+                        this.particles.push(new Particle(this.canvas.width/2, this.canvas.height/2, rD.c, Math.random() * 6 + 2, 200 + rI * 50, 1000 + rI * 200));
+                    }
+                    if (rI >= rarities.indexOf('L')) { // Notification for L+
+                        this.createNotification(`${i.rarity} 등급 ${i.name} 획득!`, 'success');
+                    }
+                }
+                card.removeEventListener('click', flipCard);
+            };
+            card.addEventListener('click', flipCard);
+        });
+        
+        gachaControls.style.display = 'block';
+    }
     
     performPetGacha(count) {
         const cost = 5 * count;
