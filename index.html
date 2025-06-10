@@ -186,6 +186,7 @@
                     <button class="button" id="gacha1Button">1회 뽑기 (10토큰)</button>
                     <button class="button" id="gacha10Button">10회 뽑기 (90토큰)</button>
                     <button class="button" id="petGacha1Button" style="background-color: #8e44ad;">펫 1회 뽑기 (5큐브)</button>
+                    <button class="button" id="petGacha10Button" style="background-color: #8e44ad;">펫 10회 뽑기 (45큐브)</button>
                 </div>
             </div>
             
@@ -258,13 +259,13 @@
 // 데이터 정의 (v25.0)
 // ==================================
 const RARITY_DATA = {
-    N:   {r: 0.4599999, c:'#95a5a6', p:1.0}, E:   {r: 0.2500000, c:'#2ecc71', p:1.8}, 
+    N:   {r: 0.4599999, c:'#95a5a6', p:1.0}, E:   {r: 0.2500010, c:'#2ecc71', p:1.8}, 
     R:   {r: 0.1500000, c:'#3498db', p:3.2}, S:   {r: 0.0800000, c:'#9b59b6', p:5.8},
     SSR: {r: 0.0070000, c:'#f1c40f', p:15.0}, UR:  {r: 0.0020000, c:'#e67e22', p:30.0},
     L:   {r: 0.0008000, c:'#e74c3c', p:60.0}, U:   {r: 0.0001000, c:'#ff1493', p:120.0},
     SU:  {r: 0.0000500, c:'#00ffff', p:240.0}, SSU: {r: 0.0000300, c:'#adff2f', p:480.0},
     M:   {r: 0.0000100, c:'#ffdead', p:960.0}, LM:  {r: 0.0000080, c:'#f0e68c', p:1920.0},
-    EN:  {r: 0.0000020, c:'#dda0dd', p:3840.0}, G:   {r: 0.0000001, c:'#ffffff', p:7680.0}
+    EN:  {r: 0.0000010, c:'#dda0dd', p:3840.0}, G:   {r: 0.0000001, c:'#ffffff', p:7680.0}
 };
 
 function drawWeaponShapes(ctx, shape, x, y, angle, scale, color, rarity) {
@@ -431,7 +432,7 @@ const SKILL_DATA = {
     '광폭화': {type:'buff', buffType: 'attack_speed', dur:8, cd:18, val:0.5, name:'광폭화'},
     '흡혈 저주': {type:'aoe_dot', r:100, d:0.2, dur:6, tick:0.5, cd:12, c:'rgba(192,57,43,0.6)', name:'흡혈 저주'},
     '지진': {type:'earthquake', r:200, d:1.5, dur:4, cd:15, val:0.5, c:'rgba(139,69,19,0.6)', name:'지진'},
-    '눈보라': {type:'blizzard', r:200, d:0.1, dur:6, tick:1, cd:20, frz:0.5, c:'rgba(224,255,255,0.5)', name:'눈보라'},
+    '눈보라': {type:'blizzard', r:200, d:0.1, dur:6, tick:1, cd:20, frz:0.5, frz_chance: 0.1, c:'rgba(224,255,255,0.5)', name:'눈보라'},
     '암살': {type:'aura_poison', r:9999, d:0.05, dur:5, tick:0.5, cd:15, c:'rgba(138,43,226,0.5)', name:'암살'},
     '신성 폭발': {type:'holy_blast', r:150, d:1.0, a:0.2, cd:18, c:'rgba(255,215,0,0.6)', name:'신성 폭발'},
     '시간 왜곡': {type:'time_warp', dur:5, cd:30, val:0.5, name:'시간 왜곡'},
@@ -534,19 +535,19 @@ const TALENT_DATA = {
         {id:'ele10', name:'원소 해방', desc:'스킬 사용 시 5초간 모든 원소 피해 +50%', cost: 8, prereq: 'ele9'}
     ]},
     '소환': { name: '소환', talents: [
-        {id:'sum1', name:'소환수 강화', desc:'펫의 공격력과 최대 체력 +20%', cost:1},
+        {id:'sum1', name:'소환수 강화', desc:'펫의 공격력 +30%', cost:1},
         {id:'sum2', name:'주인과의 교감', desc:'플레이어의 치명타 시 5초간 펫 공격력 +50%', cost:2, prereq:'sum1'},
         {id:'sum3', name:'끈끈한 유대', desc:'펫이 공격 시 플레이어의 스킬 쿨타임 0.1초 감소', cost:3, prereq:'sum2'},
         {id:'sum4', name:'공격 명령', desc:'플레이어 공격 시 펫이 같은 대상을 공격할 확률 +25%', cost:3, prereq:'sum3'},
         {id:'sum5', name:'소환수 분노', desc:'펫의 치명타 확률 +10%, 피해 +30%', cost:4, prereq:'sum4'},
         {id:'sum6', name:'생명의 샘', desc:'펫이 공격 시 플레이어 체력 1 회복', cost:4, prereq:'sum5'},
-        {id:'sum7', name:'진화', desc:'펫의 모든 능력치 +25%', cost:5, prereq:'sum6'},
+        {id:'sum7', name:'진화', desc:'펫의 공격력과 공격속도 +20%', cost:5, prereq:'sum6'},
         {id:'sum8', 'name':'무리 전술', desc:'펫이 공격 시 5초간 플레이어 공격 속도 +10%', cost:6, prereq:'sum7'},
-        {id:'sum9', name:'영혼 결속', desc:'플레이어가 받는 피해의 10%를 펫이 대신 받음', cost: 7, prereq: 'sum8'},
-        {id:'sum10', name:'궁극 소환', desc:'펫이 죽으면 30초 후 부활, 부활 시 10초간 강력해짐', cost: 8, prereq: 'sum9'}
+        {id:'sum9', name:'공격 조율', desc:'펫의 공격 속도가 플레이어 공격 속도의 50%만큼 추가로 증가', cost: 7, prereq: 'sum8'},
+        {id:'sum10', name:'영혼의 무기', desc:'펫이 10초마다 강력한 영혼 화살을 발사하여 3배의 피해를 줌', cost: 8, prereq: 'sum9'}
     ]},
     '축복': { name: '축복', talents: [
-        {id:'ble1', name:'신성한 보호', desc:'15초마다 최대 체력 5%의 보호막 생성', cost:1},
+        {id:'ble1', name:'신성한 보호', desc:'15초마다 해로운 효과 1개 제거', cost:1},
         {id:'ble2', name:'치유의 손길', desc:'치유 스킬 효과 +25%', cost:2, prereq:'ble1'},
         {id:'ble3', name:'가호', desc:'버프 지속시간 +20%', cost:2, prereq:'ble1'},
         {id:'ble4', name:'굳은 신념', desc:'버프를 받고 있는 동안 방어력 +20%', cost:3, prereq:'ble3'},
@@ -1152,7 +1153,7 @@ class SkillEffect extends BaseEffect {
                 this.game.projectiles.push(p);
             }
         }
-        if(['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = (this.s.tick || 1) * 1000; this.game.enemies.forEach(e => { if (Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r) { const damage = this.p.attackPower * (this.s.d || 0); if (this.s.type === 'divine_shield' && this.s.wrath_dps) { this.game.dealDamage(e, this.p.attackPower * this.s.wrath_dps, null, true); } else if (damage > 0) { const killed = this.game.dealDamage(e, damage, null); if(this.s.type === 'aura_poison') {e.applyStatusEffect(STATUS_EFFECTS.POISON, 3000);} if(this.s.type === 'blizzard') { if (Math.random() < (this.s.frz_chance || 0)) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000); } } if(this.s.type === 'blood_thirst') { const l = Math.ceil(damage * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + l); } if (this.s.lifesteal) { this.p.hp = Math.min(this.p.maxHp, this.p.hp + Math.ceil(damage * this.s.lifesteal)); } } } }); } } }
+        if(['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = (this.s.tick || 1) * 1000; this.game.enemies.forEach(e => { if (Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r) { const damage = this.p.attackPower * (this.s.d || 0); if (this.s.type === 'divine_shield' && this.s.wrath_dps) { this.game.dealDamage(e, this.p.attackPower * this.s.wrath_dps, null, true); } else if (damage > 0) { const killed = this.game.dealDamage(e, damage, null); if(this.s.type === 'aura_poison') {e.applyStatusEffect(STATUS_EFFECTS.POISON, 3000);} if(this.s.type === 'blizzard') { e.applyStatusEffect(STATUS_EFFECTS.SLOW, 1100, 1000, 0.3); if (this.s.frz && Math.random() < (this.s.frz_chance || 0.1)) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000); } } if(this.s.type === 'blood_thirst') { const l = Math.ceil(damage * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + l); } if (this.s.lifesteal) { this.p.hp = Math.min(this.p.maxHp, this.p.hp + Math.ceil(damage * this.s.lifesteal)); } } } }); } } }
     draw(ctx){ ctx.save(); ctx.globalAlpha = Math.max(0, this.life / this.maxLife); ctx.fillStyle = this.s.c || 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 20; ctx.shadowColor = this.s.c || '#fff'; if(this.s.type.includes('aoe') || this.s.type.includes('aura') || ['earthquake', 'blizzard', 'holy_blast'].includes(this.s.type)){ const x = ['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type) ? this.p.x : this.x; const y = ['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type) ? this.p.y : this.y; ctx.beginPath(); ctx.arc(x, y, this.s.r || 100, 0, Math.PI * 2); ctx.fill(); } ctx.restore(); }
 }
 
@@ -1215,6 +1216,7 @@ class Game {
             gacha1Button: () => this.performGacha(1), 
             gacha10Button: () => this.performGacha(10), 
             petGacha1Button: () => this.performPetGacha(1), 
+            petGacha10Button: () => this.performPetGacha(10),
             closeInventoryButton: () => this.closeView('inventoryPanel'), 
             openGachaButton: () => this.openView('gachaPanel'), 
             closeGachaButton: () => this.closeView('gachaPanel'), 
@@ -1785,7 +1787,7 @@ class Game {
     }
     
     performPetGacha(count) {
-        const cost = 5 * count;
+        const cost = count === 1 ? 5 : 45;
         if (this.player.petCubes < cost) {
             this.createNotification('펫 큐브가 부족합니다!', 'error');
             return;
@@ -1804,7 +1806,7 @@ class Game {
         });
 
         this.pets.push(...results);
-        this.showGachaResult(results); 
+        this.showGachaResult(results);
         this.updateUI();
         this.updatePetPanelDisplay();
     }
@@ -1874,7 +1876,7 @@ class Game {
     closeModal(id) { document.getElementById('modal-backdrop').style.display = 'none'; document.getElementById(id).style.display = 'none'; }
     gameOver() { this.isGameOver = true; document.getElementById('finalFloor').textContent = this.currentFloor; this.openModal('gameOverScreen'); this.pause(); localStorage.removeItem('hackSlashGame_v25'); }
     spawnWave() { const eC = Math.min(3 + Math.floor(this.currentFloor * 1.5), 15); const elC = Math.min(0.1 + (this.currentFloor * 0.05), 0.4); for(let i = 0; i < eC; i++) { this.enemies.push(new Enemy(this, Math.random() < elC)); } }
-    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(1 + this.currentFloor / 5); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 10; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); this.pause(); }
+    completeFloor() { this.floorCompleted = true; let gR = Math.floor(150 * this.currentFloor * (1 + this.currentFloor * 0.1)); let tR = Math.floor(8 * this.currentFloor + (this.currentFloor > 10 ? this.currentFloor * 2 : 0)); if (this.talents['greed8']) { gR = Math.floor(gR * 1.2); tR = Math.floor(tR * 1.2); } this.player.gold += gR; this.player.gachaTokens += tR; this.player.petCubes += Math.floor(5 + this.currentFloor / 2); let bH = ''; if(this.currentFloor % 10 === 0) { const bT = this.currentFloor * 10; this.player.gachaTokens += bT; bH = `<div style="color: #f1c40f; font-weight: bold;">10층 돌파 보너스! 토큰 +${bT}</div>`; this.createNotification(`${this.currentFloor}층 달성 보너스! +${bT} 토큰!`, 'success'); } document.getElementById('floorReward').innerHTML = `<h2>${this.currentFloor}층 클리어!</h2><p>골드 +${gR.toLocaleString()}</p><p>토큰 +${tR}</p>${bH}`; this.openModal('floorInfo'); this.pause(); }
     nextFloor() { this.currentFloor++; this.currentWave = 1; this.floorCompleted = false; this.closeModal('floorInfo'); this.spawnWave(); this.resume(); }
     updateInventoryDisplay() { const list = document.getElementById('inventoryList'); list.innerHTML = ''; const filtered = this.inventory.filter(i => this.inventoryFilter === 'all' || i.type === this.inventoryFilter); filtered.sort((a, b) => Object.keys(RARITY_DATA).indexOf(b.rarity) - Object.keys(RARITY_DATA).indexOf(a.rarity)); filtered.forEach(item => { const div = document.createElement('div'); div.className = `item ${item.rarity}`; const rC = RARITY_DATA[item.rarity].c; div.style.borderLeftColor = rC; div.onclick = () => this.equipItem(item); if(Object.values(this.equipment).flat().some(e => e?.id === item.id)) div.classList.add('equipped'); let cost = Math.floor(150 * Math.pow(2.3, item.level)); if (this.talents['greed5']) cost = Math.floor(cost * 0.8); const iD = document.createElement('div');
             if(item.type === 'skill'){
@@ -2019,10 +2021,10 @@ class Game {
                  if(this.player.job) this.selectJob(this.player.job, false);
 
                  this.createNotification("불러오기 완료", "success");
-             } catch(e) {
+            } catch(e) {
                  console.error("저장 파일 불러오기 실패:", e);
                  this.createNotification("저장 파일을 불러올 수 없습니다.", "error");
-             }
+            }
         }
         this.updateStats();
         this.updateInventoryDisplay();
@@ -2124,11 +2126,11 @@ class Game {
 
     getAttackSpeed() {
         const bS = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2;
-        
+
         // NaN 방지 코드
         const timeWarpMult = this.player.timeWarpMultiplier || 1;
         const attackSpeedMult = this.player.attackSpeedMultiplier || 1;
-
+        
         let fS = bS * timeWarpMult * attackSpeedMult;
         if(this.talents['util1']) fS *= 1.1;
         if(this.talents['util6']) fS *= 1.15;
