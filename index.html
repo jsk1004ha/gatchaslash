@@ -437,7 +437,9 @@ const SKILL_DATA = {
     '신성 폭발': {type:'holy_blast', r:150, d:1.0, a:0.2, cd:18, c:'rgba(255,215,0,0.6)', name:'신성 폭발'},
     '시간 왜곡': {type:'time_warp', dur:5, cd:30, val:0.5, name:'시간 왜곡'},
     '피의 갈증': {type:'blood_thirst', r:180, dur:7, tick:0.2, d:0.25, val:0.1, cd:16, c:'rgba(255,0,0,0.4)', name:'피의 갈증'},
-    '천상의 방패': {type:'divine_shield', dur:3, cd:40, name:'천상의 방패'}
+    '천상의 방패': {type:'divine_shield', dur:3, cd:40, name:'천상의 방패'},
+    '강철 피부': {name:'강철 피부', type:'buff', buffType: 'defense_percent', dur: 8, cd: 25, val: 0.5, c:'rgba(100,100,100,0.8)'},
+    '날카로운 눈': {name:'날카로운 눈', type:'buff', buffType: 'crit_boost', dur: 10, cd: 30, val: {rate: 0.3, dmg: 0.5}, c:'rgba(255,255,100,0.8)'}
 };
 
 const TALENT_DATA = {
