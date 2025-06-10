@@ -427,12 +427,12 @@ const SKILL_DATA = {
     '치유의 빛': {type:'heal', a:0.3, cd:15, c:'rgba(100,255,100,0.8)', name:'치유의 빛'},
     '빙결': {type:'aoe', r:100, d:0.5, cd:8, c:'rgba(100,200,255,0.6)', frz:2, name:'빙결'},
     '독 안개': {type:'aura_poison', r:150, d:0.2, dur:8, tick:0.5, cd:10, c:'rgba(100,255,100,0.4)', name:'독 안개'},
-    '보호막': {type:'shield', dur:5, cd:20, val:0.3, name:'보호막'},
-    '광폭화': {type:'rage', dur:8, cd:18, val:0.5, name:'광폭화'},
+    '보호막': {type:'buff', buffType: 'defense', dur:10, cd:20, val:0.5, name:'보호막'},
+    '광폭화': {type:'buff', buffType: 'attack_speed', dur:8, cd:18, val:0.5, name:'광폭화'},
     '흡혈 저주': {type:'aoe_dot', r:100, d:0.2, dur:6, tick:0.5, cd:12, c:'rgba(192,57,43,0.6)', name:'흡혈 저주'},
     '지진': {type:'earthquake', r:200, d:1.5, dur:4, cd:15, val:0.5, c:'rgba(139,69,19,0.6)', name:'지진'},
     '눈보라': {type:'blizzard', r:200, d:0.1, dur:6, tick:1, cd:20, frz:0.5, c:'rgba(224,255,255,0.5)', name:'눈보라'},
-    '암살': {type:'assassinate', d:5, cd:8, name:'암살'},
+    '암살': {type:'aura_poison', r:9999, d:0.05, dur:5, tick:0.5, cd:15, c:'rgba(138,43,226,0.5)', name:'암살'},
     '신성 폭발': {type:'holy_blast', r:150, d:1.0, a:0.2, cd:18, c:'rgba(255,215,0,0.6)', name:'신성 폭발'},
     '시간 왜곡': {type:'time_warp', dur:5, cd:30, val:0.5, name:'시간 왜곡'},
     '피의 갈증': {type:'blood_thirst', r:180, dur:7, tick:0.2, d:0.25, val:0.1, cd:16, c:'rgba(255,0,0,0.4)', name:'피의 갈증'},
@@ -491,7 +491,7 @@ const TALENT_DATA = {
     '특수': { name: '특수', talents: [
         {id:'spec1', name:'흡혈', desc:'주는 피해의 2%만큼 체력 회복', cost:2},
         {id:'spec2', name:'반사', desc:'받는 피해의 10%를 적에게 반사', cost:2, prereq:'spec1'},
-        {id:'spec3', name:'죽음의 저항', desc:'죽음에 이르는 피해 시 1회 생존', cost:3, prereq:'spec2'},
+        {id:'spec3', name:'죽음의 저항', desc:'죽음에 이르는 피해 시 5초간 무적 상태로 부활', cost:3, prereq:'spec2'},
         {id:'spec4', name:'처형인', desc:'체력 20% 이하 적에게 피해 +50%', cost:4, prereq:'spec3'},
         {id:'spec5', name:'역병', desc:'공격 시 5초간 적 방어력 10% 감소', cost:4, prereq:'spec4'},
         {id:'spec6', name:'초월', desc:'모든 스탯 +15%', cost:5, prereq:'spec5'},
@@ -591,26 +591,26 @@ const SKILL_UPGRADE_DATA = {
     },
     '보호막': {
         5: [
-            { id: 'shield_up_1', name: '흡수량 +30%', apply: (d) => ({...d, val: d.val * 1.3}) },
+            { id: 'def_up_1', name: '방어력 증가량 +20%', apply: (d) => ({...d, val: d.val * 1.2}) },
             { id: 'duration_up_1', name: '지속시간 +2초', apply: (d) => ({...d, dur: d.dur + 2}) },
             { id: 'cd_down_1', name: '쿨타임 -15%', apply: (d) => ({...d, cd: d.cd * 0.85}) }
         ],
         10: [
-            { id: 'shield_explode', name: '보호막 파괴 시 폭발 피해', apply: (d) => ({...d, explode: true}) },
-            { id: 'reflect_shield', name: '보호막 중 피격시 30% 반사', apply: (d) => ({...d, reflect: 0.3}) },
-            { id: 'recharge', name: '보호막 지속 중 초당 10% 회복', apply: (d) => ({...d, recharge: 0.1}) }
+            { id: 'def_up_2', name: '방어력 증가량 +30%', apply: (d) => ({...d, val: d.val * 1.3}) },
+            { id: 'retaliation', name: '지속 중 피격 시 20% 확률로 반격', apply: (d) => ({...d, retaliation: 0.2}) },
+            { id: 'purify_shield', name: '시전 시 모든 상태이상 해제', apply: (d) => ({...d, purify: true}) }
         ]
     },
     '광폭화': {
         5: [
-            { id: 'atk_up_1', name: '공격력 증가량 +20%', apply: (d) => ({...d, val: d.val * 1.2}) },
+            { id: 'as_up_1', name: '공격속도 증가량 +20%', apply: (d) => ({...d, val: d.val * 1.2}) },
             { id: 'duration_up_1', name: '지속시간 +3초', apply: (d) => ({...d, dur: d.dur + 3}) },
             { id: 'cd_down_1', name: '쿨타임 -15%', apply: (d) => ({...d, cd: d.cd * 0.85}) }
         ],
         10: [
-            { id: 'atk_up_2', name: '공격력 증가량 +30%', apply: (d) => ({...d, val: d.val * 1.3}) },
+            { id: 'as_up_2', name: '공격속도 증가량 +30%', apply: (d) => ({...d, val: d.val * 1.3}) },
             { id: 'merciless', name: '적 처치 시 지속시간 +1초', apply: (d) => ({...d, merciless: true}) },
-            { id: 'blood_pact', name: '받는 피해 +10%, 공속 추가 +25%', apply: (d) => ({...d, blood_pact: {dmg_inc: 1.1, as_inc: 1.25}}) }
+            { id: 'berserker_rage', name: '지속 중 이동속도 +30%', apply: (d) => ({...d, move_speed_inc: 1.3}) }
         ]
     },
      '흡혈 저주': {
@@ -651,14 +651,14 @@ const SKILL_UPGRADE_DATA = {
     },
     '암살': {
         5: [
-            { id: 'dmg_up_1', name: '피해량 +30%', apply: (d) => ({...d, d: d.d * 1.3}) },
+            { id: 'dmg_up_1', name: '독 피해량 +30%', apply: (d) => ({...d, d: d.d * 1.3}) },
             { id: 'cd_down_1', name: '쿨타임 -20%', apply: (d) => ({...d, cd: d.cd * 0.8}) },
-            { id: 'range_up_1', name: '시전 거리 +30%', apply: (d) => ({...d, range_mod: (d.range_mod||1) * 1.3}) }
+            { id: 'duration_up_1', name: '독 지속시간 +2초', apply: (d) => ({...d, dur: d.dur + 2}) }
         ],
         10: [
-            { id: 'dmg_up_2', name: '피해량 +50%', apply: (d) => ({...d, d: d.d * 1.5}) },
-            { id: 'execute', name: '잃은 체력 1%당 피해 0.5% 증가', apply: (d) => ({...d, execute: 0.005}) },
-            { id: 'chain_kill', name: '처치 시 3초 내 재사용 가능', apply: (d) => ({...d, chain_kill: true}) }
+            { id: 'dmg_up_2', name: '독 피해량 +50%', apply: (d) => ({...d, d: d.d * 1.5}) },
+            { id: 'execute_poison', name: '체력 30% 이하 적에게 독 피해 2배', apply: (d) => ({...d, execute_poison: true}) },
+            { id: 'chain_poison', name: '독으로 적 처치 시 주변에 전염', apply: (d) => ({...d, chain_poison: true}) }
         ]
     },
     '신성 폭발': {
@@ -717,8 +717,8 @@ const JOB_SKILL_DATA = {
         { name: '전장의 함성', type: 'rage', dur: 5, cd: 20, val: 0.3, name:'전장의 함성' }
     ],
     '마법사': [
-        { name: '원소 구체', type: 'projectile_skill', d: 1.5, cd: 6, c: 'rgba(150, 100, 255, 0.8)', v: 4, life: 2500, p: true },
-        { name: '차원 이동', type: 'teleport', range: 300, cd: 10, c: 'rgba(150, 100, 255, 0.8)' }
+        { name: '원소 구체', type: 'projectile_skill', d: 1.5, cd: 20, c: 'rgba(150, 100, 255, 0.8)', v: 4, life: 2500, p: true },
+        { name: '반발의 파동', type: 'aoe_knockback', r: 250, knockback: 300, cd: 12, c: 'rgba(150, 100, 255, 0.8)' }
     ]
 };
 
@@ -758,6 +758,10 @@ class Enemy {
     }
     draw(ctx) { ctx.save(); if (this.isElite) { ctx.shadowBlur = 15; ctx.shadowColor = '#e74c3c'; } if (this.isFrozen) ctx.fillStyle = '#3498db'; else if (this.isStunned) ctx.fillStyle = '#f39c12'; else if (this.statusEffects.has(STATUS_EFFECTS.POISON)) ctx.fillStyle = '#8e44ad'; else if (this.statusEffects.has(STATUS_EFFECTS.BURN)) ctx.fillStyle = '#e67e22'; else ctx.fillStyle = this.isElite ? '#e74c3c' : '#c0392b'; if(this.statusEffects.has(STATUS_EFFECTS.SLOW)) { ctx.shadowBlur = 10; ctx.shadowColor = '#bdc3c7'; } ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); const bw = 50, bx = this.x - bw / 2, by = this.y - this.size - 15; ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, 6); ctx.fillStyle = this.hp > this.maxHp * 0.3 ? '#2ecc71' : '#e74c3c'; ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), 6); if (this.isElite) { ctx.fillStyle = '#ffd700'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText('★', this.x, this.y - this.size - 25); } ctx.restore(); }
     takeDamage(d) { this.hp -= d; }
+    knockback(distance, angle) {
+        this.x += Math.cos(angle) * distance;
+        this.x = Math.max(0, Math.min(this.game.canvas.width, this.x)); // clamp to canvas bounds
+    }
 }
 
 class BaseEffect {
@@ -872,13 +876,15 @@ class SkillEffect extends BaseEffect {
     }
     activate(){
         switch(this.s.type){
-            case 'teleport':
-                const angle_tp = Math.atan2(this.game.mouse.y - this.p.y, this.game.mouse.x - this.p.x);
-                const dist = Math.min(this.s.range, Math.hypot(this.game.mouse.x - this.p.x, this.game.mouse.y - this.p.y));
-                this.p.x += Math.cos(angle_tp) * dist;
-                this.p.x = Math.max(this.p.size, Math.min(this.game.canvas.width - this.p.size, this.p.x));
-                this.p.y = this.game.groundY - this.p.size;
-                this.game.particles.push(...Array(30).fill(0).map(() => new Particle(this.p.x, this.p.y, this.s.c, Math.random() * 4 + 2, 200, 800)));
+            case 'aoe_knockback':
+                this.game.enemies.forEach(e => {
+                    const dist = Math.hypot(this.p.x - e.x, this.p.y - e.y);
+                    if (dist < this.s.r) {
+                        const angle = Math.atan2(e.y - this.p.y, e.x - this.p.x);
+                        e.knockback(this.s.knockback, angle); 
+                    }
+                });
+                this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.p.x, this.p.y, this.s.c, Math.random() * 4 + 2, 300, 1000)));
                 break;
             case 'projectile_skill':
                 const angle = Math.atan2(this.game.mouse.y - this.p.y, this.game.mouse.x - this.p.x);
@@ -944,13 +950,61 @@ class SkillEffect extends BaseEffect {
                     this.game.createFloatingText(`정화!`, this.p.x, this.p.y - 20, '#3498db', 20);
                 }
                 break;
-            case 'shield': this.p.shieldAmount = Math.floor(this.p.maxHp * this.s.val); this.p.shieldDuration = this.s.dur * 1000; this.game.createFloatingText('보호막!', this.p.x, this.p.y, '52,152,219', 20); break;
-            case 'rage': this.p.rageMultiplier = 1 + this.s.val; this.p.rageDuration = this.s.dur * 1000; this.game.createFloatingText('광폭화!', this.p.x, this.p.y, '231,76,60', 20); break;
-            case 'earthquake': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); e.applyStatusEffect(STATUS_EFFECTS.STUN, 2000); } }); this.game.createFloatingText('지진!', this.x, this.y, '139,69,19', 24); this.game.particles.push(...Array(60).fill(0).map(() => new Particle(this.x + (Math.random() - 0.5) * this.s.r, this.y, this.s.c, Math.random() * 8 + 4, 200, 1500))); break;
-            case 'assassinate': const cE = this.findClosest(this.p.x, this.p.y); if(cE && Math.hypot(this.p.x - cE.x, this.p.y - cE.y) < 250){ this.game.dealDamage(cE, this.dmg * (1 + (this.p.critRate / 100) * this.p.critDamage), null); this.game.createFloatingText('암살!', cE.x, cE.y, '255,50,50', 24); this.game.particles.push(...Array(30).fill(0).map(() => new Particle(cE.x, cE.y, 'rgba(255,50,50,0.8)', Math.random() * 6 + 3, 250, 1000))); } break;
-            case 'holy_blast': this.game.enemies.forEach(e => { if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ this.game.dealDamage(e, this.dmg, null); } }); const hA2 = this.p.maxHp * this.s.a; this.p.hp = Math.min(this.p.maxHp, this.p.hp + hA2); this.game.createFloatingText(`신성 폭발! +${Math.ceil(hA2)}`, this.x, this.y, '255,215,0', 20); this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.x, this.y, this.s.c, Math.random() * 6 + 3, 300, 1200))); break;
-            case 'time_warp': this.p.timeWarpMultiplier = 1 + this.s.val; this.p.timeWarpDuration = this.s.dur * 1000; this.game.createFloatingText('시간 왜곡!', this.p.x, this.p.y, '138,43,226', 20); break;
-            case 'divine_shield': this.p.invulnerable = true; this.p.invulnerableDuration = this.s.dur * 1000; this.game.createFloatingText('무적!', this.p.x, this.p.y, '255,215,0', 24); break;
+            case 'buff':
+                 if(this.s.buffType === 'defense') {
+                    this.p.defenseMultiplier = 1 + this.s.val;
+                    this.p.defenseBuffDuration = this.s.dur * 1000;
+                    this.game.createFloatingText('방어력 증가!', this.p.x, this.p.y, '52,152,219', 20);
+                 } else if (this.s.buffType === 'attack_speed') {
+                    this.p.attackSpeedMultiplier = 1 + this.s.val;
+                    this.p.attackSpeedBuffDuration = this.s.dur * 1000;
+                    this.game.createFloatingText('공격속도 증가!', this.p.x, this.p.y, '231,76,60', 20);
+                 }
+                 if(this.s.purify) {
+                    this.p.statusEffects.clear();
+                    this.game.createFloatingText(`정화!`, this.p.x, this.p.y - 20, '#3498db', 20);
+                }
+                this.game.updateStats();
+                break;
+            case 'earthquake': 
+                this.game.enemies.forEach(e => { 
+                    if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ 
+                        this.game.dealDamage(e, this.dmg, null); e.applyStatusEffect(STATUS_EFFECTS.STUN, 2000); 
+                    } 
+                }); 
+                this.game.createFloatingText('지진!', this.x, this.y, '139,69,19', 24); 
+                this.game.particles.push(...Array(60).fill(0).map(() => new Particle(this.x + (Math.random() - 0.5) * this.s.r, this.y, this.s.c, Math.random() * 8 + 4, 200, 1500))); 
+                break;
+            case 'holy_blast': 
+                this.game.enemies.forEach(e => { 
+                    if(Math.hypot(this.x - e.x, this.y - e.y) < this.s.r){ 
+                        this.game.dealDamage(e, this.dmg, null); 
+                    } 
+                }); 
+                const hA2 = this.p.maxHp * this.s.a; this.p.hp = Math.min(this.p.maxHp, this.p.hp + hA2); 
+                this.game.createFloatingText(`신성 폭발! +${Math.ceil(hA2)}`, this.x, this.y, '255,215,0', 20); 
+                this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.x, this.y, this.s.c, Math.random() * 6 + 3, 300, 1200))); 
+                break;
+            case 'time_warp': 
+                this.p.timeWarpMultiplier = 1 + this.s.val; 
+                this.p.timeWarpDuration = this.s.dur * 1000; 
+                this.game.createFloatingText('시간 왜곡!', this.p.x, this.p.y, '138,43,226', 20); 
+                break;
+            case 'divine_shield': 
+                this.p.invulnerable = true; 
+                this.p.invulnerableDuration = this.s.dur * 1000; 
+                this.game.createFloatingText('무적!', this.p.x, this.p.y, '255,215,0', 24); 
+                break;
+            case 'aoe_knockback':
+                this.game.enemies.forEach(e => {
+                    const dist = Math.hypot(this.p.x - e.x, this.p.y - e.y);
+                    if (dist < this.s.r) {
+                        const angle = Math.atan2(e.y - this.p.y, e.x - this.p.x);
+                        e.knockback(this.s.knockback, angle); 
+                    }
+                });
+                this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.p.x, this.p.y, this.s.c, Math.random() * 4 + 2, 300, 1000)));
+                break;
         }
     }
     findClosest(x, y, e = []){ let c = null, mD = Infinity; this.game.enemies.forEach(en => { if(e.some(ex => ex && ex.id === en.id) || this.hit.has(en.id)) return; const d = Math.hypot(x - en.x, y - en.y); if(d < mD){ mD = d; c = en; } }); return c; }
@@ -989,7 +1043,10 @@ class Game {
             gold: 1000, gachaTokens: 500, baseAttackPower: 5, attackPower: 5, critRate: 0.05, critDamage: 1.5,
             skillCooldowns: [0, 0, 0, 0], shieldAmount: 0, shieldDuration: 0, rageMultiplier: 1, rageDuration: 0, 
             timeWarpMultiplier: 1, timeWarpDuration: 0, invulnerable: false, invulnerableDuration: 0,
-            hots: [], petCubes: 10, attackSpeedBuff: 0, attackSpeedBuffDuration: 0,
+            usedDeathResist: false,
+            hots: [], petCubes: 10, 
+            attackSpeedMultiplier: 1, attackSpeedBuffDuration: 0, 
+            defenseMultiplier: 1, defenseBuffDuration: 0,
             advancementPoints: 0, job: null, jobSkillCooldowns: [0,0]
         };
         this.equipment = {weapon: null, armor: null, skills: [null, null, null, null], pet: null, jobSkills: [null, null]}; 
@@ -1084,7 +1141,8 @@ class Game {
         if (this.player.rageDuration > 0) { this.player.rageDuration -= dt; if (this.player.rageDuration <= 0) this.player.rageMultiplier = 1; }
         if (this.player.timeWarpDuration > 0) { this.player.timeWarpDuration -= dt; if (this.player.timeWarpDuration <= 0) this.player.timeWarpMultiplier = 1; }
         if (this.player.invulnerableDuration > 0) { this.player.invulnerableDuration -= dt; if (this.player.invulnerableDuration <= 0) this.player.invulnerable = false; }
-        if (this.player.attackSpeedBuffDuration > 0) { this.player.attackSpeedBuffDuration -= dt; if(this.player.attackSpeedBuffDuration <= 0) this.player.attackSpeedBuff = 0; }
+        if (this.player.attackSpeedBuffDuration > 0) { this.player.attackSpeedBuffDuration -= dt; if(this.player.attackSpeedBuffDuration <= 0) { this.player.attackSpeedMultiplier = 1; this.updateStats();} }
+        if (this.player.defenseBuffDuration > 0) { this.player.defenseBuffDuration -= dt; if(this.player.defenseBuffDuration <= 0) { this.player.defenseMultiplier = 1; this.updateStats();} }
         for (let i = this.player.hots.length - 1; i >= 0; i--) {
             const hot = this.player.hots[i];
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + hot.amountPerSecond * (dt / 1000));
@@ -1267,7 +1325,14 @@ class Game {
         this.createFloatingText(`-${Math.floor(finalDamage)}`, this.player.x, this.player.y, '255,50,50', 26);
         
         if(this.player.hp <= 0) {
-            if(this.talents['spec3'] && !this.player.usedDeathResist) { this.player.hp = 1; this.player.usedDeathResist = true; this.createFloatingText('죽음의 저항!', this.player.x, this.player.y - 30, '255,215,0', 30); }
+            if(this.talents['spec3'] && !this.player.usedDeathResist) { 
+                this.player.hp = this.player.maxHp * 0.3; // Revive with 30% HP
+                this.player.invulnerable = true;
+                this.player.invulnerableDuration = 5000; // 5 seconds of invincibility
+                this.player.usedDeathResist = true; 
+                this.createFloatingText('죽음의 저항!', this.player.x, this.player.y - 30, '255,215,0', 30); 
+                this.createFloatingText('무적!', this.player.x, this.player.y, '255,215,0', 24);
+            }
             else { this.gameOver(); }
         }
     }
@@ -1341,7 +1406,7 @@ class Game {
         if(this.talents['spec6']) { bA *= 1.15; bH *= 1.15; bD *= 1.15; }
         bA *= (1 + (this.player.tempAttackBonus || 0));
         this.player.attackPower = Math.floor(bA); 
-        this.player.defense = Math.floor(bD); 
+        this.player.defense = Math.floor(bD * this.player.defenseMultiplier); 
         this.player.maxHp = Math.floor(bH);
         
         let critRate = 0.05; if(this.talents['atk3']) critRate += 0.05; if(this.talents['atk8']) critRate += 0.1; this.player.critRate = critRate;
@@ -1465,10 +1530,7 @@ class Game {
         const statMappings = { 'playerLevel': this.player.level, 'playerExp': Math.ceil(this.player.exp), 'expToNext': this.player.expToNext, 'playerHP': Math.ceil(this.player.hp), 'playerMaxHP': this.player.maxHp, 'playerAttack': this.player.attackPower, 'playerDefense': this.player.defense, 'playerCritRate': `${(this.player.critRate * 100).toFixed(0)}%`, 'playerGold': this.player.gold.toLocaleString(), 'gachaTokens': this.player.gachaTokens, 'playerPetCubes': this.player.petCubes, 'talentPoints': this.talentPoints, 'availableTalentPoints': this.talentPoints, 'advancementPoints': this.player.advancementPoints, 'playerJob': this.player.job || '없음', 'currentFloor': this.currentFloor, 'currentWave': this.currentWave, 'pityCounter': this.pityCounter };
         Object.entries(statMappings).forEach(([id, val]) => { const el = document.getElementById(id); if(el) el.textContent = val; });
         document.getElementById('hpBar').style.width = `${Math.max(0, this.player.hp / this.player.maxHp * 100)}%`; document.getElementById('expBar').style.width = `${this.player.exp / this.player.expToNext * 100}%`;
-        const bS = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2; let fS = bS * this.player.timeWarpMultiplier * (1 + this.player.attackSpeedBuff);
-        if(this.talents['util1']) fS *= 1.1; if(this.talents['util6']) fS *= 1.15;
-        if(this.talents['job_war2']) fS *= 0.9;
-        document.getElementById('playerAttackSpeed').textContent = fS.toFixed(1);
+        document.getElementById('playerAttackSpeed').textContent = this.getAttackSpeed().toFixed(1);
         ['weapon', 'armor', 'pet'].forEach(type => {
             const i = this.equipment[type];
             const s = document.getElementById(`${type}Slot`);
@@ -1742,8 +1804,20 @@ class Game {
         if(data) {
             try {
                 const s = JSON.parse(data);
-                if (s.p) Object.assign(this.player, s.p);
-
+                if (s.p) {
+                    Object.assign(this.player, s.p);
+                    // NaN 버그 방어 코드
+                    if (typeof this.player.attackSpeedMultiplier !== 'number' || isNaN(this.player.attackSpeedMultiplier)) {
+                        this.player.attackSpeedMultiplier = 1;
+                    }
+                    if (typeof this.player.defenseMultiplier !== 'number' || isNaN(this.player.defenseMultiplier)) {
+                        this.player.defenseMultiplier = 1;
+                    }
+                    if (typeof this.player.timeWarpMultiplier !== 'number' || isNaN(this.player.timeWarpMultiplier)) {
+                        this.player.timeWarpMultiplier = 1;
+                    }
+                }
+                
                 // Sanitize inventory data
                 if (s.i) {
                     this.inventory = s.i.filter(item => {
@@ -1792,20 +1866,19 @@ class Game {
                 this.pets = (s.pets || []).filter(pet => pet && PET_DATA[pet.name]);
                 this.player.advancementPoints = s.ap || 0;
                 this.player.job = s.job || null;
-                
-                // Set job skills after loading job
-                if(this.player.job && JOB_SKILL_DATA[this.player.job]) {
-                    this.equipment.jobSkills = JOB_SKILL_DATA[this.player.job];
-                } else {
-                    this.equipment.jobSkills = [null, null];
-                }
-                
-            } catch(e) {
-                console.error("Save Load Failed, resetting:", e);
-                localStorage.removeItem('hackSlashGame_v25');
-                this.resetPlayerState();
-            }
+                 
+                 // Set job skills after loading job
+                 if(this.player.job) this.selectJob(this.player.job, false);
+
+                 this.createNotification("불러오기 완료", "success");
+             } catch(e) {
+                 console.error("저장 파일 불러오기 실패:", e);
+                 this.createNotification("저장 파일을 불러올 수 없습니다.", "error");
+             }
         }
+        this.updateStats();
+        this.updateInventoryDisplay();
+        this.initTalentTree();
     }
     findClosestEnemy(x, y) {
         let closest = null;
@@ -1902,39 +1975,17 @@ class Game {
     }
 
     getAttackSpeed() {
-        const wI = this.equipment.weapon || {name: '맨손', rarity: 'N'};
-        const w = WEAPON_DATA[wI.name];
-        let speed = w.s;
-
-        // 버프: 시간 왜곡 스킬
-        speed *= this.player.timeWarpMultiplier;
+        const bS = this.equipment.weapon ? WEAPON_DATA[this.equipment.weapon.name].s : 1.2;
         
-        // 버프: 위습 펫
-        speed *= (1 + this.player.attackSpeedBuff);
-        
-        // 특성
-        if(this.talents['util1']) speed *= 1.1;
-        if(this.talents['util6']) speed *= 1.15;
-        if(this.talents['job_war2']) speed *= 0.9;
+        // NaN 방지 코드
+        const timeWarpMult = this.player.timeWarpMultiplier || 1;
+        const attackSpeedMult = this.player.attackSpeedMultiplier || 1;
 
-        // 스킬 업그레이드 효과: 광폭화 (피의 계약)
-        if (this.player.rageDuration > 0) {
-            const rageSkill = this.equipment.skills.find(s => s && s.name === '광폭화');
-            if (rageSkill) {
-                const modifiedSkillData = this.getModifiedSkillData(rageSkill);
-                if (modifiedSkillData.blood_pact) {
-                    speed *= modifiedSkillData.blood_pact.as_inc;
-                }
-            }
-        }
-        
-        // 스킬 업그레이드 효과: 피의 갈증 (광란)
-        const bloodThirstEffect = this.activeEffects.find(e => e.s && e.s.type === 'blood_thirst');
-        if(bloodThirstEffect && bloodThirstEffect.s.frenzy) {
-            speed *= bloodThirstEffect.s.frenzy;
-        }
-
-        return speed;
+        let fS = bS * timeWarpMult * attackSpeedMult;
+        if(this.talents['util1']) fS *= 1.1;
+        if(this.talents['util6']) fS *= 1.15;
+        if(this.talents['job_war2']) fS *= 0.9;
+        return fS;
     }
 
     selectSynthItem(slotIndex) {
@@ -2183,6 +2234,7 @@ class Pet {
                     }
                 });
                 break;
+
         }
          this.game.gainPetExp(1);
     }
@@ -2198,3 +2250,4 @@ window.onload = () => { window.game = new Game(); };
 </script>
 </body>
 </html>
+
