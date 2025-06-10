@@ -513,6 +513,61 @@ const TALENT_DATA = {
         {id:'job_mage3', name:'마나 순환', desc:'스킬 쿨타임 20% 감소', cost:3, prereq:'job_mage2'},
         {id:'job_mage4', name:'마력 보호막', desc:'피격 시 15% 확률로 3초간 최대체력 10% 보호막 생성', cost:4, prereq:'job_mage3'},
         {id:'job_mage5', name:'대마법사', desc:'모든 스킬의 범위와 지속시간 +25%', cost:5, prereq:'job_mage4'},
+    ]},
+    '궁수': { name: '궁수', job: true, talents: [
+        {id:'job_arc1', name:'정밀 사격', desc:'활/석궁 계열 무기 치명타 확률 +10%, 피해 +20%', cost:2},
+        {id:'job_arc2', name:'속사', desc:'활/석궁 계열 무기 공격 속도 +20%', cost:2, prereq:'job_arc1'},
+        {id:'job_arc3', name:'관통 화살', desc:'화살이 적 1명 추가 관통', cost:3, prereq:'job_arc2'},
+        {id:'job_arc4', name:'매의 눈', desc:'원거리 공격 사거리 +20%', cost:4, prereq:'job_arc3'},
+        {id:'job_arc5', name:'집중', desc:'1초 이상 이동하지 않을 시 공격력 +30%', cost:5, prereq:'job_arc4'},
+    ]},
+    '원소': { name: '원소', talents: [
+        {id:'ele1', name:'원소 친화', desc:'화상, 빙결, 독 등 상태이상 지속시간 +15%', cost:1},
+        {id:'ele2', name:'화염 증폭', desc:'화상 피해량 +25%', cost:2, prereq:'ele1'},
+        {id:'ele3', name:'냉기 확산', desc:'빙결 효과가 주변 적에게 25% 효과로 전이', cost:2, prereq:'ele1'},
+        {id:'ele4', name:'전격 과부하', desc:'연쇄 번개 스킬 타겟 수 +2, 피해량 +15%', cost:3, prereq:'ele3'},
+        {id:'ele5', name:'발화', desc:'치명타 시 15% 확률로 3초간 화상 부여', cost:4, prereq:'ele2'},
+        {id:'ele6', name:'동상', desc:'빙결된 적에게 주는 피해 +20%', cost:4, prereq:'ele3'},
+        {id:'ele7', name:'원소 폭발', desc:'상태이상 걸린 적 처치 시 폭발하여 주변에 피해', cost:5, prereq:'ele5'},
+        {id:'ele8', name:'원소의 대가', desc:'모든 상태이상 피해 및 지속시간 +25%', cost:6, prereq:'ele7'},
+        {id:'ele9', name:'마력 각인', desc:'공격 시 10% 확률로 5초간 적의 원소 저항력 감소', cost: 7, prereq: 'ele8'},
+        {id:'ele10', name:'원소 해방', desc:'스킬 사용 시 5초간 모든 원소 피해 +50%', cost: 8, prereq: 'ele9'}
+    ]},
+    '소환': { name: '소환', talents: [
+        {id:'sum1', name:'소환수 강화', desc:'펫의 공격력과 최대 체력 +20%', cost:1},
+        {id:'sum2', name:'주인과의 교감', desc:'플레이어의 치명타 시 5초간 펫 공격력 +50%', cost:2, prereq:'sum1'},
+        {id:'sum3', name:'끈끈한 유대', desc:'펫이 공격 시 플레이어의 스킬 쿨타임 0.1초 감소', cost:3, prereq:'sum2'},
+        {id:'sum4', name:'공격 명령', desc:'플레이어 공격 시 펫이 같은 대상을 공격할 확률 +25%', cost:3, prereq:'sum3'},
+        {id:'sum5', name:'소환수 분노', desc:'펫의 치명타 확률 +10%, 피해 +30%', cost:4, prereq:'sum4'},
+        {id:'sum6', name:'생명의 샘', desc:'펫이 공격 시 플레이어 체력 1 회복', cost:4, prereq:'sum5'},
+        {id:'sum7', name:'진화', desc:'펫의 모든 능력치 +25%', cost:5, prereq:'sum6'},
+        {id:'sum8', 'name':'무리 전술', desc:'펫이 공격 시 5초간 플레이어 공격 속도 +10%', cost:6, prereq:'sum7'},
+        {id:'sum9', name:'영혼 결속', desc:'플레이어가 받는 피해의 10%를 펫이 대신 받음', cost: 7, prereq: 'sum8'},
+        {id:'sum10', name:'궁극 소환', desc:'펫이 죽으면 30초 후 부활, 부활 시 10초간 강력해짐', cost: 8, prereq: 'sum9'}
+    ]},
+    '축복': { name: '축복', talents: [
+        {id:'ble1', name:'신성한 보호', desc:'15초마다 최대 체력 5%의 보호막 생성', cost:1},
+        {id:'ble2', name:'치유의 손길', desc:'치유 스킬 효과 +25%', cost:2, prereq:'ble1'},
+        {id:'ble3', name:'가호', desc:'버프 지속시간 +20%', cost:2, prereq:'ble1'},
+        {id:'ble4', name:'굳은 신념', desc:'버프를 받고 있는 동안 방어력 +20%', cost:3, prereq:'ble3'},
+        {id:'ble5', name:'천상의 축복', desc:'스킬 사용 시 10% 확률로 5초간 모든 스탯 +15% 버프', cost:4, prereq:'ble2'},
+        {id:'ble6', name:'보복', desc:'피격 시 10% 확률로 주변에 신성 피해', cost:4, prereq:'ble4'},
+        {id:'ble7', name:'신성 강화', desc:'모든 버프 효과 +25%', cost:5, prereq:'ble5'},
+        {id:'ble8', name:'은총', desc:'적 처치 시 5% 확률로 무작위 버프 획득', cost:6, prereq:'ble7'},
+        {id:'ble9', name:'신성한 영역', desc:'플레이어 주위에 신성한 영역을 만들어 1초마다 적에게 피해', cost: 7, prereq: 'ble8'},
+        {id:'ble10', name:'신의 대리인', desc:'모든 버프가 활성화된 동안 무적', cost: 8, prereq: 'ble9'}
+    ]},
+    '저주': { name: '저주', talents: [
+        {id:'cur1', name:'약화의 손길', desc:'공격 시 5초간 적 공격력 -10%', cost:1},
+        {id:'cur2', name:'취약', desc:'공격 시 5초간 적 방어력 -10%', cost:2, prereq:'cur1'},
+        {id:'cur3', name:'절망', desc:'저주 걸린 적의 체력 회복 효과 -50%', cost:2, prereq:'cur1'},
+        {id:'cur4', name:'고통 증폭', desc:'저주 걸린 적이 받는 피해 +15%', cost:3, prereq:'cur2'},
+        {id:'cur5', name:'파멸의 저주', desc:'적 처치 시 주변 적들에게 5초간 받는 피해 증가 저주 전파', cost:4, prereq:'cur4'},
+        {id:'cur6', name:'흡수', desc:'저주 걸린 적에게서 초당 체력 0.1% 흡수', cost:4, prereq:'cur3'},
+        {id:'cur7', name:'부패', desc:'저주가 끝날 때 추가 피해', cost:5, prereq:'cur5'},
+        {id:'cur8', name:'저주의 대가', desc:'모든 저주 효과 및 지속시간 +25%', cost:6, prereq:'cur7'},
+        {id:'cur9', name:'침묵', desc:'공격 시 5% 확률로 2초간 적 스킬 사용 불가', cost: 7, prereq: 'cur8'},
+        {id:'cur10', name:'죽음의 표식', desc:'저주 걸린 적이 10초 안에 죽지 않으면 큰 피해', cost: 8, prereq: 'cur9'}
     ]}
 };
 
@@ -708,7 +763,59 @@ const SKILL_UPGRADE_DATA = {
             { id: 'cd_down_2', name: '쿨타임 -20%', apply: (d) => ({...d, cd: d.cd * 0.8}) },
             { id: 'last_stand', name: '무적 해제 시 잃은 체력 20% 회복', apply: (d) => ({...d, last_stand: 0.2}) }
         ]
-    }
+    },
+    '궁수': [
+        { name: '화살비', type: 'aoe_fall', r: 100, d: 0.2, dur: 4, tick: 0.2, cd: 15, c: 'rgba(144, 238, 144, 0.7)' },
+        { name: '회피 사격', type: 'dash_and_shoot', dash: 200, d: 1.0, cd: 8, slow: {duration: 2000, value: 0.5}, c: 'rgba(144, 238, 144, 0.7)' }
+    ],
+    '원소': [
+        {id:'ele1', name:'원소 친화', desc:'화상, 빙결, 독 등 상태이상 지속시간 +15%', cost:1},
+        {id:'ele2', name:'화염 증폭', desc:'화상 피해량 +25%', cost:2, prereq:'ele1'},
+        {id:'ele3', name:'냉기 확산', desc:'빙결 효과가 주변 적에게 25% 효과로 전이', cost:2, prereq:'ele1'},
+        {id:'ele4', name:'전격 과부하', desc:'연쇄 번개 스킬 타겟 수 +2, 피해량 +15%', cost:3, prereq:'ele3'},
+        {id:'ele5', name:'발화', desc:'치명타 시 15% 확률로 3초간 화상 부여', cost:4, prereq:'ele2'},
+        {id:'ele6', name:'동상', desc:'빙결된 적에게 주는 피해 +20%', cost:4, prereq:'ele3'},
+        {id:'ele7', name:'원소 폭발', desc:'상태이상 걸린 적 처치 시 폭발하여 주변에 피해', cost:5, prereq:'ele5'},
+        {id:'ele8', name:'원소의 대가', desc:'모든 상태이상 피해 및 지속시간 +25%', cost:6, prereq:'ele7'},
+        {id:'ele9', name:'마력 각인', desc:'공격 시 10% 확률로 5초간 적의 원소 저항력 감소', cost: 7, prereq: 'ele8'},
+        {id:'ele10', name:'원소 해방', desc:'스킬 사용 시 5초간 모든 원소 피해 +50%', cost: 8, prereq: 'ele9'}
+    ],
+    '소환': [
+        {id:'sum1', name:'소환수 강화', desc:'펫의 공격력과 최대 체력 +20%', cost:1},
+        {id:'sum2', name:'주인과의 교감', desc:'플레이어의 치명타 시 5초간 펫 공격력 +50%', cost:2, prereq:'sum1'},
+        {id:'sum3', name:'끈끈한 유대', desc:'펫이 공격 시 플레이어의 스킬 쿨타임 0.1초 감소', cost:3, prereq:'sum2'},
+        {id:'sum4', name:'공격 명령', desc:'플레이어 공격 시 펫이 같은 대상을 공격할 확률 +25%', cost:3, prereq:'sum3'},
+        {id:'sum5', name:'소환수 분노', desc:'펫의 치명타 확률 +10%, 피해 +30%', cost:4, prereq:'sum4'},
+        {id:'sum6', name:'생명의 샘', desc:'펫이 공격 시 플레이어 체력 1 회복', cost:4, prereq:'sum5'},
+        {id:'sum7', name:'진화', desc:'펫의 모든 능력치 +25%', cost:5, prereq:'sum6'},
+        {id:'sum8', 'name':'무리 전술', desc:'펫이 공격 시 5초간 플레이어 공격 속도 +10%', cost:6, prereq:'sum7'},
+        {id:'sum9', name:'영혼 결속', desc:'플레이어가 받는 피해의 10%를 펫이 대신 받음', cost: 7, prereq: 'sum8'},
+        {id:'sum10', name:'궁극 소환', desc:'펫이 죽으면 30초 후 부활, 부활 시 10초간 강력해짐', cost: 8, prereq: 'sum9'}
+    ],
+    '축복': [
+        {id:'ble1', name:'신성한 보호', desc:'15초마다 최대 체력 5%의 보호막 생성', cost:1},
+        {id:'ble2', name:'치유의 손길', desc:'치유 스킬 효과 +25%', cost:2, prereq:'ble1'},
+        {id:'ble3', name:'가호', desc:'버프 지속시간 +20%', cost:2, prereq:'ble1'},
+        {id:'ble4', name:'굳은 신념', desc:'버프를 받고 있는 동안 방어력 +20%', cost:3, prereq:'ble3'},
+        {id:'ble5', name:'천상의 축복', desc:'스킬 사용 시 10% 확률로 5초간 모든 스탯 +15% 버프', cost:4, prereq:'ble2'},
+        {id:'ble6', name:'보복', desc:'피격 시 10% 확률로 주변에 신성 피해', cost:4, prereq:'ble4'},
+        {id:'ble7', name:'신성 강화', desc:'모든 버프 효과 +25%', cost:5, prereq:'ble5'},
+        {id:'ble8', name:'은총', desc:'적 처치 시 5% 확률로 무작위 버프 획득', cost:6, prereq:'ble7'},
+        {id:'ble9', name:'신성한 영역', desc:'플레이어 주위에 신성한 영역을 만들어 1초마다 적에게 피해', cost: 7, prereq: 'ble8'},
+        {id:'ble10', name:'신의 대리인', desc:'모든 버프가 활성화된 동안 무적', cost: 8, prereq: 'ble9'}
+    ],
+    '저주': [
+        {id:'cur1', name:'약화의 손길', desc:'공격 시 5초간 적 공격력 -10%', cost:1},
+        {id:'cur2', name:'취약', desc:'공격 시 5초간 적 방어력 -10%', cost:2, prereq:'cur1'},
+        {id:'cur3', name:'절망', desc:'저주 걸린 적의 체력 회복 효과 -50%', cost:2, prereq:'cur1'},
+        {id:'cur4', name:'고통 증폭', desc:'저주 걸린 적이 받는 피해 +15%', cost:3, prereq:'cur2'},
+        {id:'cur5', name:'파멸의 저주', desc:'적 처치 시 주변 적들에게 5초간 받는 피해 증가 저주 전파', cost:4, prereq:'cur4'},
+        {id:'cur6', name:'흡수', desc:'저주 걸린 적에게서 초당 체력 0.1% 흡수', cost:4, prereq:'cur3'},
+        {id:'cur7', name:'부패', desc:'저주가 끝날 때 추가 피해', cost:5, prereq:'cur5'},
+        {id:'cur8', name:'저주의 대가', desc:'모든 저주 효과 및 지속시간 +25%', cost:6, prereq:'cur7'},
+        {id:'cur9', name:'침묵', desc:'공격 시 5% 확률로 2초간 적 스킬 사용 불가', cost: 7, prereq: 'cur8'},
+        {id:'cur10', name:'죽음의 표식', desc:'저주 걸린 적이 10초 안에 죽지 않으면 큰 피해', cost: 8, prereq: 'cur9'}
+    ]
 };
 
 const JOB_SKILL_DATA = {
@@ -719,6 +826,10 @@ const JOB_SKILL_DATA = {
     '마법사': [
         { name: '원소 구체', type: 'projectile_skill', d: 1.5, cd: 20, c: 'rgba(150, 100, 255, 0.8)', v: 4, life: 2500, p: true },
         { name: '반발의 파동', type: 'aoe_knockback', r: 250, knockback: 300, cd: 12, c: 'rgba(150, 100, 255, 0.8)' }
+    ],
+    '궁수': [
+        { name: '화살비', type: 'aoe_fall', r: 100, d: 0.2, dur: 4, tick: 0.2, cd: 15, c: 'rgba(144, 238, 144, 0.7)' },
+        { name: '회피 사격', type: 'dash_and_shoot', dash: 200, d: 1.0, cd: 8, slow: {duration: 2000, value: 0.5}, c: 'rgba(144, 238, 144, 0.7)' }
     ]
 };
 
@@ -1005,10 +1116,43 @@ class SkillEffect extends BaseEffect {
                 });
                 this.game.particles.push(...Array(50).fill(0).map(() => new Particle(this.p.x, this.p.y, this.s.c, Math.random() * 4 + 2, 300, 1000)));
                 break;
+            case 'aoe_fall':   {
+                // This will be handled by the update method
+                this.game.particles.push(...Array(20).fill(0).map(() => new Particle(this.x, this.y, 'rgba(255,255,255,0.5)', 3, 100, 500)));
+                break;
+            }
+            case 'dash_and_shoot':  {
+                const dashAngle = Math.atan2(this.p.y - this.game.mouse.y, this.p.x - this.game.mouse.x); // away from mouse
+                this.p.x += Math.cos(dashAngle) * this.s.dash;
+                this.p.x = Math.max(this.p.size, Math.min(this.game.canvas.width - this.p.size, this.p.x));
+                this.p.y = this.game.groundY - this.p.size;
+            
+                const shootAngle = Math.atan2(this.game.mouse.y - this.p.y, this.game.mouse.x - this.p.x);
+                const p_item = {name: this.s.name, rarity: 'L'};
+                const p_data = {life: 1000, p: false, d: this.s.d, e: {shape: 'arrow'}, slow: this.s.slow};
+                const vx = Math.cos(shootAngle) * 15 * 30;
+                const vy = Math.sin(shootAngle) * 15 * 30;
+                this.game.projectiles.push(new Projectile(this.game, 'player', p_item, this.p.x, this.p.y, vx, vy, p_data, this.dmg));
+                break;
+            }
         }
     }
     findClosest(x, y, e = []){ let c = null, mD = Infinity; this.game.enemies.forEach(en => { if(e.some(ex => ex && ex.id === en.id) || this.hit.has(en.id)) return; const d = Math.hypot(x - en.x, y - en.y); if(d < mD){ mD = d; c = en; } }); return c; }
-    update(dt){ super.update(dt); if(['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = (this.s.tick || 1) * 1000; this.game.enemies.forEach(e => { if (Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r) { const damage = this.p.attackPower * (this.s.d || 0); if (this.s.type === 'divine_shield' && this.s.wrath_dps) { this.game.dealDamage(e, this.p.attackPower * this.s.wrath_dps, null, true); } else if (damage > 0) { const killed = this.game.dealDamage(e, damage, null); if(this.s.type === 'aura_poison') {e.applyStatusEffect(STATUS_EFFECTS.POISON, 3000);} if(this.s.type === 'blizzard') { if (Math.random() < (this.s.frz_chance || 0)) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000); } } if(this.s.type === 'blood_thirst') { const l = Math.ceil(damage * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + l); } if (this.s.lifesteal) { this.p.hp = Math.min(this.p.maxHp, this.p.hp + Math.ceil(damage * this.s.lifesteal)); } } } }); } } }
+    update(dt){ 
+        super.update(dt); 
+        if(this.s.type === 'aoe_fall'){
+            this.tick -= dt;
+            if(this.tick <= 0){
+                this.tick = (this.s.tick || 0.2) * 1000;
+                const p_item = {name: this.s.name, rarity: 'L'};
+                const p_data = {life: 800, p: true, d: this.s.d, e: {shape: 'arrow'}};
+                const randomX = this.x + (Math.random() - 0.5) * this.s.r * 2;
+                const startY = this.y - 400; // start from above
+                const p = new Projectile(this.game, 'player', p_item, randomX, startY, 0, 1000, p_data, this.dmg);
+                this.game.projectiles.push(p);
+            }
+        }
+        if(['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type)){ this.tick -= dt; if(this.tick <= 0){ this.tick = (this.s.tick || 1) * 1000; this.game.enemies.forEach(e => { if (Math.hypot(this.p.x - e.x, this.p.y - e.y) < this.s.r) { const damage = this.p.attackPower * (this.s.d || 0); if (this.s.type === 'divine_shield' && this.s.wrath_dps) { this.game.dealDamage(e, this.p.attackPower * this.s.wrath_dps, null, true); } else if (damage > 0) { const killed = this.game.dealDamage(e, damage, null); if(this.s.type === 'aura_poison') {e.applyStatusEffect(STATUS_EFFECTS.POISON, 3000);} if(this.s.type === 'blizzard') { if (Math.random() < (this.s.frz_chance || 0)) { e.applyStatusEffect(STATUS_EFFECTS.FREEZE, this.s.frz * 1000); } } if(this.s.type === 'blood_thirst') { const l = Math.ceil(damage * this.s.val); this.p.hp = Math.min(this.p.maxHp, this.p.hp + l); } if (this.s.lifesteal) { this.p.hp = Math.min(this.p.maxHp, this.p.hp + Math.ceil(damage * this.s.lifesteal)); } } } }); } } }
     draw(ctx){ ctx.save(); ctx.globalAlpha = Math.max(0, this.life / this.maxLife); ctx.fillStyle = this.s.c || 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 20; ctx.shadowColor = this.s.c || '#fff'; if(this.s.type.includes('aoe') || this.s.type.includes('aura') || ['earthquake', 'blizzard', 'holy_blast'].includes(this.s.type)){ const x = ['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type) ? this.p.x : this.x; const y = ['aura', 'aura_poison', 'blizzard', 'blood_thirst', 'divine_shield'].includes(this.s.type) ? this.p.y : this.y; ctx.beginPath(); ctx.arc(x, y, this.s.r || 100, 0, Math.PI * 2); ctx.fill(); } ctx.restore(); }
 }
 
@@ -1162,6 +1306,10 @@ class Game {
                 if(Math.hypot(p.x - e.x, p.y - e.y) < e.size){
                     this.dealDamage(e, p.damage, p.item);
                     p.hitEnemies.add(e.id);
+
+                    if (p.weaponData.slow) {
+                        e.applyStatusEffect(STATUS_EFFECTS.SLOW, p.weaponData.slow.duration, 1000, p.weaponData.slow.value);
+                    }
 
                     if(!p.pierce) {
                          this.projectiles.splice(i, 1);
