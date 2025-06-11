@@ -3018,8 +3018,8 @@
                 
                 this.name = bossData.name || bossKey;
                 this.level = bossData.level || 50;
-                this.hp = this.maxHp = bossData.hp || 500000;
-                this.damage = bossData.damage || 500;
+                this.hp = this.maxHp = bossData.hp || 300000; // 500000에서 300000으로 감소
+                this.damage = bossData.damage || 300; // 500에서 300으로 감소
                 this.color = bossData.color || '#ffffff';
                 this.size = bossData.size || 50;
                 
@@ -3032,8 +3032,8 @@
                     this.patternTimers = bossData.patterns.map(() => 0);
                 }
                 
-                this.nextPatternTime = game.gameTime + (Math.random() * 5000 + 5000); // 5-10초 후 첫 패턴
-                this.patternCooldown = 10000; // 기본 10초
+                this.nextPatternTime = game.gameTime + (Math.random() * 7000 + 7000); // 5-10초에서 7-14초로 증가
+                this.patternCooldown = 15000; // 10초에서 15초로 증가
             }
         
             update(dt, player, dealDamageCallback) {
