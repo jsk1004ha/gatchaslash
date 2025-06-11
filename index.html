@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>핵앤슬래시 갸챠 게임 v2.1</title>
+    <title>핵앤슬래시 갸챠 게임 v1.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -3056,7 +3056,11 @@
         
                     executePattern(pattern) {
                         const p = this.game.player;
-                        const createEffect = (effectData) => new SkillEffect(this.game, this, effectData, { name: pattern.type });
+                        const createEffect = (effectData) => {
+                            const effect = new SkillEffect(this.game, this, effectData, { name: pattern.type });
+                            effect.isBossEffect = true;  // 보스 이펙트 플래그 설정
+                            return effect;
+                        };
 
                         switch(pattern.type) {
                             case 'stomp': {
@@ -3122,7 +3126,12 @@
                                 for(let i=0; i<pattern.count; i++) {
                                     setTimeout(() => {
                                         const targetX = p.x + (Math.random() - 0.5) * 150;
-                                        const effect = createEffect({type: 'aoe', r: 80, d: this.damage * pattern.damageMultiplier, c: 'rgba(0,139,139,0.7)'});
+                                        const effect = createEffect({
+                                            type: 'aoe', 
+                                            r: 80, 
+                                            d: Math.floor(this.damage * (pattern.damageMultiplier || 1)), 
+                                            c: 'rgba(0,139,139,0.7)'
+                                        });
                                         effect.x = targetX;
                                         effect.y = this.game.groundY - 40;
                                         this.game.activeEffects.push(effect);
@@ -3131,11 +3140,15 @@
                                 break;
                             }
                             case 'ink_cloud': {
-                                this.game.createFloatingText(`${this.name}가 먹물을 뿜습니다!`, this.x, this.y, '50,50,50', 24);
-                                const effect = createEffect({type: 'aura', r: pattern.range, c: 'rgba(10,10,10,0.7)', dur: pattern.duration});
-                                effect.isInkCloud = true;
-                                effect.x = p.x;
-                                effect.y = p.y;
+                                this.game.createFloatingText(`${this.name}의 먹물 구름!`, this.x, this.y, '0,0,0', 24);
+                                const effect = createEffect({
+                                    type: 'aura',
+                                    r: pattern.range || 250,
+                                    d: this.damage * 0.2,
+                                    tick: 500,
+                                    dur: pattern.duration || 5000,
+                                    c: 'rgba(0,0,0,0.5)'
+                                });
                                 this.game.activeEffects.push(effect);
                                 break;
                             }
